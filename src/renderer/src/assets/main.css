@@ -348,6 +348,14 @@ textarea {
   color: var(--faint);
 }
 
+.todo-input-url {
+  flex: 0 1 220px;
+  font-size: 13px;
+  color: var(--muted);
+  border-left: 1px solid var(--line);
+  padding-left: var(--s2);
+}
+
 .urgency-group {
   display: flex;
   flex-wrap: wrap;

@@ -50,7 +50,7 @@ export function rollover(): void {
   if (changed) saveTodos(todos)
 }
 
-export function addTodo(input: Pick<Todo, 'text' | 'date' | 'urgency'>): Todo {
+export function addTodo(input: Pick<Todo, 'text' | 'date' | 'urgency'> & { url?: string }): Todo {
   const todo: Todo = { id: randomUUID(), done: false, createdAt: new Date().toISOString(), ...input }
   saveTodos([...loadTodos(), todo])
   return todo

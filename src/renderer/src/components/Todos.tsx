@@ -53,14 +53,21 @@ export default function Todos({
   highlightId
 }: Props): React.JSX.Element {
   const [text, setText] = useState('')
+  const [url, setUrl] = useState('')
   const [urgency, setUrgency] = useState<Urgency>('medium')
   const [burstId, setBurstId] = useState<string | null>(null)
   const [pickerFor, setPickerFor] = useState<{ id: string; kind: 'link' | 'urgency' } | null>(null)
 
   const add = async (): Promise<void> => {
     if (!text.trim()) return
-    await window.api.addTodo({ text: text.trim(), date, urgency })
+    await window.api.addTodo({
+      text: text.trim(),
+      date,
+      urgency,
+      url: normalizeUrl(url.trim()) || undefined
+    })
     setText('')
+    setUrl('')
     onChange()
   }
 
@@ -82,6 +89,13 @@ export default function Todos({
             placeholder="Co jest do zrobienia?"
             value={text}
             onChange={(e) => setText(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && add()}
+          />
+          <input
+            className="todo-input todo-input-url"
+            placeholder="🔗 link (opcjonalnie)"
+            value={url}
+            onChange={(e) => setUrl(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && add()}
           />
           <button className="btn-primary" onClick={add}>

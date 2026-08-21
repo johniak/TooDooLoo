@@ -213,6 +213,14 @@ test('link http na todosie: dodanie, chip z domeną, normalizacja https', async 
   await page.locator('.picker-url').fill('')
   await page.keyboard.press('Enter')
   await expect(todo.locator('.todo-url')).toHaveCount(0)
+
+  // link można dodać już przy tworzeniu todosa
+  await page.getByPlaceholder('Co jest do zrobienia?').fill('Zgłosić buga')
+  await page.getByPlaceholder('🔗 link (opcjonalnie)').fill('issues.example.com/42')
+  await page.getByRole('button', { name: 'Dodaj', exact: true }).click()
+  await expect(
+    page.locator('.todo', { hasText: 'Zgłosić buga' }).locator('.todo-url')
+  ).toContainText('issues.example.com')
   await app.close()
 })
 
