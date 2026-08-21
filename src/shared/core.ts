@@ -19,13 +19,23 @@ export type NoteMeta = {
 
 export type DaySummary = { todos: number; done: number; notes: number }
 
+// paleta „żaru": im pilniej, tym goręcej; „przed pracą" = świt
 export const URGENCIES: { value: Urgency; label: string; color: string }[] = [
-  { value: 'immediate', label: 'Natychmiast', color: '#ff4d6d' },
-  { value: 'high', label: 'Pilne', color: '#ff9f43' },
-  { value: 'medium', label: 'Średnie', color: '#feca57' },
-  { value: 'low', label: 'Luźne', color: '#1dd1a1' },
-  { value: 'before-work', label: 'Przed pracą', color: '#54a0ff' }
+  { value: 'immediate', label: 'Natychmiast', color: '#FF5F3D' },
+  { value: 'high', label: 'Pilne', color: '#FF9950' },
+  { value: 'medium', label: 'Średnie', color: '#E5B963' },
+  { value: 'low', label: 'Luźne', color: '#9BA88B' },
+  { value: 'before-work', label: 'Przed pracą', color: '#86A8C8' }
 ]
+
+export const WEEKDAYS = ['Nd', 'Pn', 'Wt', 'Śr', 'Cz', 'Pt', 'So']
+
+export function dayLabel(date: string): string {
+  if (date === todayStr()) return 'Dzisiaj'
+  const [y, m, d] = date.split('-').map(Number)
+  const dt = new Date(y, m - 1, d)
+  return `${WEEKDAYS[dt.getDay()]} ${d}.${String(m).padStart(2, '0')}`
+}
 
 export function todayStr(d: Date = new Date()): string {
   const m = String(d.getMonth() + 1).padStart(2, '0')

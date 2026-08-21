@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { marked } from 'marked'
-import { NoteMeta } from '../../../shared/core'
+import { NoteMeta, dayLabel } from '../../../shared/core'
 
 type Props = {
   date: string
@@ -56,7 +56,7 @@ function Editor({ id, notes, onOpen, onChange }: Omit<Props, 'date' | 'openNoteI
 
   return (
     <motion.div
-      className="note-editor glass"
+      className="note-editor card"
       initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
     >
@@ -103,7 +103,7 @@ function Editor({ id, notes, onOpen, onChange }: Omit<Props, 'date' | 'openNoteI
       <div className="note-children">
         {children.map((c) => (
           <button key={c.id} className="note-chip" onClick={() => onOpen(c.id)}>
-            📄 {c.title}
+            ▤ {c.title}
           </button>
         ))}
         <button
@@ -171,16 +171,20 @@ export default function Notes({ date, notes, openNoteId, onOpen, onChange }: Pro
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.92 }}
               whileHover={{ y: -3 }}
-              className="note-card glass"
+              className="note-card card"
               onClick={() => onOpen(n.id)}
             >
               <span className="note-card-title">{n.title}</span>
-              <span className="muted">{n.date}</span>
+              <span className="note-card-date">{dayLabel(n.date)}</span>
             </motion.button>
           ))}
         </AnimatePresence>
       </div>
-      {visible.length === 0 && <p className="muted empty">Brak notatek</p>}
+      {visible.length === 0 && (
+        <div className="empty empty-sm">
+          <p>Żadnej notatki{scope === 'day' ? ' tego dnia' : ''}. „＋ Notatka" zaczyna nową kartkę.</p>
+        </div>
+      )}
     </section>
   )
 }

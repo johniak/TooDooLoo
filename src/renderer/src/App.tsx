@@ -1,10 +1,8 @@
 import { useCallback, useEffect, useState } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
-import { Todo, NoteMeta, DaySummary, todayStr } from '../../shared/core'
+import { motion, AnimatePresence, MotionConfig } from 'framer-motion'
+import { Todo, NoteMeta, DaySummary, todayStr, dayLabel } from '../../shared/core'
 import Todos from './components/Todos'
 import Notes from './components/Notes'
-
-const WEEKDAYS = ['Nd', 'Pn', 'Wt', 'Śr', 'Cz', 'Pt', 'So']
 
 // dni robocze: 7 wstecz, 5 wprzód; weekendy tylko gdy mają dane
 function dayList(summary: Record<string, DaySummary>): string[] {
@@ -25,12 +23,50 @@ function dayList(summary: Record<string, DaySummary>): string[] {
   return [...dates].sort().reverse()
 }
 
-function dayLabel(date: string): string {
-  const today = todayStr()
-  if (date === today) return 'Dzisiaj'
-  const [y, m, d] = date.split('-').map(Number)
-  const dt = new Date(y, m - 1, d)
-  return `${WEEKDAYS[dt.getDay()]} ${d}.${String(m).padStart(2, '0')}`
+// sygnatura: lont dnia — wypala się w czasie pracy, todosy to punkty na osi
+function DayFuse({
+  todos,
+  workStart,
+  date
+}: {
+  todos: Todo[]
+  workStart: string
+  date: string
+}): React.JSX.Element {
+  const isToday = date === todayStr()
+  const [, setTick] = useState(0)
+  useEffect(() => {
+    const i = setInterval(() => setTick((n) => n + 1), 60_000)
+    return () => clearInterval(i)
+  }, [])
+  let pct = 0
+  if (isToday) {
+    const [h, m] = workStart.split(':').map(Number)
+    const now = new Date()
+    // ponytail: 8h dzień pracy, konfiguracja końca jak będzie potrzebna
+    pct = Math.min(1, Math.max(0, (now.getHours() * 60 + now.getMinutes() - (h * 60 + m)) / 480))
+  }
+  const done = todos.filter((t) => t.done).length
+  if (!isToday && todos.length === 0) return <></>
+  return (
+    <div className="fuse">
+      <div className="fuse-track">
+        {isToday && <div className="fuse-burn" style={{ width: `${pct * 100}%` }} />}
+        {todos.map((t, i) => (
+          <span
+            key={t.id}
+            className={`fuse-tick ${t.done ? 'fuse-tick-done' : ''}`}
+            style={{ left: `${((i + 1) / (todos.length + 1)) * 100}%` }}
+          />
+        ))}
+      </div>
+      {todos.length > 0 && (
+        <span className="fuse-label">
+          {done}/{todos.length}
+        </span>
+      )}
+    </div>
+  )
 }
 
 export default function App(): React.JSX.Element {
@@ -70,76 +106,85 @@ export default function App(): React.JSX.Element {
   const today = todayStr()
 
   return (
-    <div className="app">
-      <aside className="sidebar">
-        <h1 className="logo">TooDooLoo</h1>
-        <div className="days">
-          {dayList(summary).map((date) => {
-            const s = summary[date]
-            return (
-              <motion.button
-                key={date}
-                layout
-                whileHover={{ scale: 1.03 }}
-                whileTap={{ scale: 0.97 }}
-                className={`day ${date === selected ? 'day-active' : ''} ${date === today ? 'day-today' : ''}`}
-                onClick={() => setSelected(date)}
-                data-date={date}
-              >
-                <span className="day-label">{dayLabel(date)}</span>
-                <span className="day-badges">
-                  {s && s.todos > 0 && (
-                    <span className="badge badge-todos">
-                      {s.done}/{s.todos}
-                    </span>
-                  )}
-                  {s && s.notes > 0 && <span className="badge badge-notes">{s.notes} ✎</span>}
-                </span>
-              </motion.button>
-            )
-          })}
-        </div>
-        <label className="settings">
-          Start pracy
-          <input
-            type="time"
-            value={workStart}
-            onChange={(e) => {
-              setWorkStart(e.target.value)
-              window.api.setSettings({ workStart: e.target.value })
-            }}
-          />
-        </label>
-      </aside>
-      <main className="panel">
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={selected}
-            className="panel-inner"
-            initial={{ opacity: 0, x: 24 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -24 }}
-            transition={{ duration: 0.18 }}
-          >
-            <h2 className="panel-title">{dayLabel(selected)}</h2>
-            <Todos
-              date={selected}
-              todos={todos}
-              notes={notes}
-              onChange={reload}
-              onOpenNote={setOpenNoteId}
-              highlightId={highlightId}
+    <MotionConfig reducedMotion="user">
+      <div className="app">
+        <aside className="sidebar">
+          <h1 className="logo">
+            TooDooLoo<span className="logo-ember" />
+          </h1>
+          <div className="days">
+            {dayList(summary).map((date) => {
+              const s = summary[date]
+              const left = s ? s.todos - s.done : 0
+              return (
+                <motion.button
+                  key={date}
+                  layout
+                  whileTap={{ scale: 0.97 }}
+                  className={`day ${date === selected ? 'day-active' : ''} ${date === today ? 'day-today' : ''}`}
+                  onClick={() => {
+                    setSelected(date)
+                    setOpenNoteId(null)
+                  }}
+                  data-date={date}
+                >
+                  <span className="day-label">{dayLabel(date)}</span>
+                  <span className="day-badges">
+                    {s && s.notes > 0 && <span className="note-dot" title={`${s.notes} notatki`} />}
+                    {left > 0 && <span className="badge">{left}</span>}
+                    {s && s.todos > 0 && left === 0 && <span className="badge badge-done">✓</span>}
+                  </span>
+                </motion.button>
+              )
+            })}
+          </div>
+          <label className="settings">
+            Start pracy
+            <input
+              type="time"
+              value={workStart}
+              onChange={(e) => {
+                setWorkStart(e.target.value)
+                window.api.setSettings({ workStart: e.target.value })
+              }}
             />
-            <Notes
-              date={selected}
-              notes={notes}
-              openNoteId={openNoteId}
-              onOpen={setOpenNoteId}
-              onChange={reload}
-            />
-          </motion.div>
-        </AnimatePresence>
-      </main>
-    </div>
+          </label>
+        </aside>
+        <main className="panel">
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={selected + (openNoteId ?? '')}
+              className="panel-inner"
+              initial={{ opacity: 0, x: 24 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -24 }}
+              transition={{ duration: 0.18 }}
+            >
+              <header className="day-header">
+                <h2 className="panel-title">{dayLabel(selected)}</h2>
+                <DayFuse todos={todos} workStart={workStart} date={selected} />
+              </header>
+              {!openNoteId && (
+                <Todos
+                  date={selected}
+                  todos={todos}
+                  notes={notes}
+                  onChange={reload}
+                  onOpenNote={setOpenNoteId}
+                  highlightId={highlightId}
+                />
+              )}
+              <Notes
+                date={selected}
+                notes={notes}
+                openNoteId={openNoteId}
+                onOpen={setOpenNoteId}
+                onChange={reload}
+              />
+            </motion.div>
+          </AnimatePresence>
+        </main>
+      </div>
+    </MotionConfig>
   )
 }

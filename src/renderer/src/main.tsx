@@ -1,3 +1,5 @@
+import '@fontsource/space-grotesk/500.css'
+import '@fontsource/space-grotesk/700.css'
 import './assets/main.css'
 
 import { StrictMode } from 'react'

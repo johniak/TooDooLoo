@@ -31,11 +31,9 @@ test('zmiana pilności segmented controlem na todosie', async () => {
     seedTodos: [{ text: 'Raport', date: daysAgo(0) }]
   })
   const todo = page.locator('.todo', { hasText: 'Raport' })
-  await todo.locator('.urgency-dot[title="Natychmiast"]').click()
-  await expect(todo.locator('.urgency-dot[title="Natychmiast"]')).toHaveAttribute(
-    'aria-checked',
-    'true'
-  )
+  await todo.locator('.ember').click()
+  await todo.locator('.picker-option[title="Natychmiast"]').click()
+  await expect(todo.locator('.ember')).toHaveAttribute('title', 'Natychmiast')
   await expect
     .poll(() => JSON.parse(fs.readFileSync(path.join(dataDir, 'todos.json'), 'utf8'))[0].urgency)
     .toBe('immediate')
@@ -92,7 +90,7 @@ test('link z todosa do notatki otwiera notatkę', async () => {
 
   const todo = page.locator('.todo', { hasText: 'Przeczytać spec' })
   await todo.locator('button[title="Powiąż z notatką"]').click()
-  await page.locator('.link-option', { hasText: 'Specyfikacja' }).click()
+  await page.locator('.picker-option', { hasText: 'Specyfikacja' }).click()
 
   await expect(todo.locator('.todo-note-link')).toContainText('Specyfikacja')
   await todo.locator('.todo-note-link').click()
