@@ -194,6 +194,26 @@ test('open-todo (klik w powiadomienie) przełącza dzień i podświetla todosa',
   await app.close()
 })
 
+test('zmiany danych na dysku (np. przez MCP) odświeżają UI na żywo', async () => {
+  const { app, page, dataDir } = await launch({ seedTodos: [{ text: 'Pierwszy', date: daysAgo(0) }] })
+  await expect(page.locator('.todo')).toHaveCount(1)
+
+  const file = path.join(dataDir, 'todos.json')
+  const todos = JSON.parse(fs.readFileSync(file, 'utf8'))
+  todos.push({
+    id: 'ext-1',
+    text: 'Dopisany z zewnątrz',
+    date: daysAgo(0),
+    done: false,
+    urgency: 'medium',
+    createdAt: ''
+  })
+  fs.writeFileSync(file, JSON.stringify(todos))
+
+  await expect(page.locator('.todo', { hasText: 'Dopisany z zewnątrz' })).toBeVisible()
+  await app.close()
+})
+
 test('przypomnienie: todos immediate generuje powiadomienie', async () => {
   const notifyFile = path.join(
     fs.mkdtempSync(path.join(require('os').tmpdir(), 'toodooloo-notify-')),

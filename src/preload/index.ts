@@ -16,6 +16,10 @@ export const api = {
     ipcRenderer.on('open-todo', handler)
     return () => ipcRenderer.removeListener('open-todo', handler)
   },
+  onDataChanged: (cb: () => void): (() => void) => {
+    ipcRenderer.on('data-changed', cb)
+    return () => ipcRenderer.removeListener('data-changed', cb)
+  },
   listNotes: (): Promise<NoteMeta[]> => ipcRenderer.invoke('notes:list'),
   getNote: (id: string): Promise<{ meta: NoteMeta; body: string } | null> =>
     ipcRenderer.invoke('notes:get', id),

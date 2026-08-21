@@ -1,7 +1,7 @@
 import { BrowserWindow, Notification } from 'electron'
 import fs from 'fs'
 import { dueReminders, Todo, URGENCIES } from '../shared/core'
-import { loadSettings, loadTodos, rollover } from './storage'
+import { loadSettings, loadTodos, rollover } from '../shared/store'
 
 const lastNotified = new Map<string, number>()
 

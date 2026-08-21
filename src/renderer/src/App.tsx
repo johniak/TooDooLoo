@@ -104,6 +104,7 @@ export default function App(): React.JSX.Element {
 
   useEffect(() => {
     reload()
+    return window.api.onDataChanged(reload)
   }, [reload])
 
   const today = todayStr()

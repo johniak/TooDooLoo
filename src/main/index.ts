@@ -2,13 +2,23 @@ import { app, shell, BrowserWindow, ipcMain } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
-import * as storage from './storage'
+import fs from 'fs'
+import * as storage from '../shared/store'
 import { startReminders } from './reminders'
 import { DaySummary, Todo } from '../shared/core'
 
 // w testach izolujemy też userData (localStorage itd.), nie tylko pliki danych
 if (process.env.TOODOOLOO_DATA_DIR) {
   app.setPath('userData', join(process.env.TOODOOLOO_DATA_DIR, 'electron'))
+  storage.setDataDir(process.env.TOODOOLOO_DATA_DIR)
+} else {
+  // kanoniczna ścieżka współdzielona z serwerem MCP; migracja ze starej (name z package.json)
+  const canonical = join(app.getPath('appData'), 'TooDooLoo', 'data')
+  const legacy = join(app.getPath('appData'), 'toodooloo', 'data')
+  if (!fs.existsSync(canonical) && fs.existsSync(legacy)) {
+    fs.cpSync(legacy, canonical, { recursive: true })
+  }
+  storage.setDataDir(canonical)
 }
 
 function createWindow(): void {
@@ -69,6 +79,20 @@ function registerIpc(): void {
   ipcMain.handle('notes:delete', (_e, id: string) => storage.deleteNote(id))
 }
 
+// zmiany danych z zewnątrz (np. serwer MCP) odświeżają UI na żywo
+function watchData(): void {
+  fs.mkdirSync(join(storage.dataDir(), 'notes'), { recursive: true })
+  let timer: NodeJS.Timeout
+  fs.watch(storage.dataDir(), { recursive: true }, () => {
+    clearTimeout(timer)
+    timer = setTimeout(() => {
+      for (const win of BrowserWindow.getAllWindows()) {
+        win.webContents.send('data-changed')
+      }
+    }, 200)
+  })
+}
+
 app.whenReady().then(() => {
   electronApp.setAppUserModelId('com.toodooloo')
 
@@ -79,6 +103,7 @@ app.whenReady().then(() => {
   storage.rollover()
   registerIpc()
   startReminders()
+  watchData()
   createWindow()
 
   app.on('activate', function () {

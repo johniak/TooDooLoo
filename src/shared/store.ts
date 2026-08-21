@@ -1,11 +1,18 @@
-import { app } from 'electron'
 import { randomUUID } from 'crypto'
 import fs from 'fs'
 import path from 'path'
-import { Todo, NoteMeta, todayStr } from '../shared/core'
+import { Todo, NoteMeta, todayStr } from './core'
+
+// bez zależności od Electrona — używane przez main proces i serwer MCP
+let dir = process.env.TOODOOLOO_DATA_DIR || ''
+
+export function setDataDir(d: string): void {
+  dir = d
+}
 
 export function dataDir(): string {
-  return process.env.TOODOOLOO_DATA_DIR || path.join(app.getPath('userData'), 'data')
+  if (!dir) throw new Error('data dir not set — call setDataDir() first')
+  return dir
 }
 const todosFile = () => path.join(dataDir(), 'todos.json')
 const notesDir = () => path.join(dataDir(), 'notes')
