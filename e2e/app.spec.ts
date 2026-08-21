@@ -53,8 +53,9 @@ test('rollover: nieodznaczony todos z wczoraj przechodzi na dziś', async () => 
   await app.close()
 })
 
-test('notatki: tworzenie, edycja md, tryb wizualny, podstrona, widok globalny', async () => {
+test('notatki: tworzenie, edycja md, tryb wizualny, podstrona', async () => {
   const { app, page } = await launch()
+  await page.locator('.notes-link').click()
   await page.getByRole('button', { name: '＋ Notatka' }).click()
 
   await page.locator('.note-title').fill('Plan sprintu')
@@ -72,16 +73,14 @@ test('notatki: tworzenie, edycja md, tryb wizualny, podstrona, widok globalny', 
 
   await page.getByRole('button', { name: '← Wróć' }).click()
   await expect(page.locator('.note-card', { hasText: 'Plan sprintu' })).toBeVisible()
-  // podstrona nie jest listowana jako top-level, ale jest w widoku globalnym po wejściu w rodzica
+  // podstrona nie jest listowana jako top-level
   await expect(page.locator('.note-card', { hasText: 'Szczegóły' })).toHaveCount(0)
-
-  await page.getByRole('button', { name: 'Wszystkie', exact: true }).click()
-  await expect(page.locator('.note-card', { hasText: 'Plan sprintu' })).toBeVisible()
   await app.close()
 })
 
 test('edytor wizualny: pisanie i formatowanie zapisuje się jako markdown', async () => {
   const { app, page, dataDir } = await launch()
+  await page.locator('.notes-link').click()
   await page.getByRole('button', { name: '＋ Notatka' }).click()
   await page.getByRole('radio', { name: 'Wizualnie' }).click()
 
@@ -115,10 +114,12 @@ test('edytor wizualny: pisanie i formatowanie zapisuje się jako markdown', asyn
 
 test('link z todosa do notatki otwiera notatkę', async () => {
   const { app, page } = await launch()
+  await page.locator('.notes-link').click()
   await page.getByRole('button', { name: '＋ Notatka' }).click()
   await page.locator('.note-title').fill('Specyfikacja')
   await page.getByRole('button', { name: '← Wróć' }).click()
 
+  await page.locator('.day', { hasText: 'Dzisiaj' }).click()
   await page.getByPlaceholder('Co jest do zrobienia?').fill('Przeczytać spec')
   await page.getByRole('button', { name: 'Dodaj', exact: true }).click()
 
@@ -129,6 +130,31 @@ test('link z todosa do notatki otwiera notatkę', async () => {
   await expect(todo.locator('.todo-note-link')).toContainText('Specyfikacja')
   await todo.locator('.todo-note-link').click()
   await expect(page.locator('.note-title')).toHaveValue('Specyfikacja')
+  await app.close()
+})
+
+test('notatka dnia: inline pod todosami, zapis do day-<data>.md, poza eksploratorem', async () => {
+  const { app, page, dataDir } = await launch()
+  const editor = page.locator('.day-note .tiptap')
+  await editor.click()
+  await page.keyboard.type('Log dnia: spokój')
+  await expect
+    .poll(() => {
+      try {
+        return fs.readFileSync(path.join(dataDir, 'notes', `day-${daysAgo(0)}.md`), 'utf8')
+      } catch {
+        return ''
+      }
+    })
+    .toContain('Log dnia: spokój')
+
+  // notatka dnia nie zaśmieca eksploratora
+  await page.locator('.notes-link').click()
+  await expect(page.locator('.note-card')).toHaveCount(0)
+
+  // po powrocie na dzień treść jest wczytana
+  await page.locator('.day', { hasText: 'Dzisiaj' }).click()
+  await expect(page.locator('.day-note .tiptap')).toContainText('Log dnia: spokój')
   await app.close()
 })
 

@@ -3,6 +3,7 @@ import { motion, AnimatePresence, MotionConfig } from 'framer-motion'
 import { Todo, NoteMeta, DaySummary, todayStr, dayLabel } from '../../shared/core'
 import Todos from './components/Todos'
 import Notes from './components/Notes'
+import DayNote from './components/DayNote'
 
 // dni robocze: 7 wstecz, 5 wprzód; weekendy tylko gdy mają dane
 function dayList(summary: Record<string, DaySummary>): string[] {
@@ -75,6 +76,7 @@ export default function App(): React.JSX.Element {
   const [todos, setTodos] = useState<Todo[]>([])
   const [notes, setNotes] = useState<NoteMeta[]>([])
   const [openNoteId, setOpenNoteId] = useState<string | null>(null)
+  const [view, setView] = useState<'day' | 'notes'>('day')
   const [highlightId, setHighlightId] = useState<string | null>(null)
   const [workStart, setWorkStart] = useState('09:00')
 
@@ -82,6 +84,7 @@ export default function App(): React.JSX.Element {
     window.api.getSettings().then((s) => setWorkStart(s.workStart))
     return window.api.onOpenTodo(({ id, date }) => {
       setSelected(date)
+      setView('day')
       setOpenNoteId(null)
       setHighlightId(id)
       setTimeout(() => setHighlightId(null), 2500)
@@ -104,6 +107,8 @@ export default function App(): React.JSX.Element {
   }, [reload])
 
   const today = todayStr()
+  // notatki dnia (day-*) żyją inline w widoku dnia, nie w eksploratorze
+  const realNotes = notes.filter((n) => !n.id.startsWith('day-'))
 
   return (
     <MotionConfig reducedMotion="user">
@@ -121,9 +126,10 @@ export default function App(): React.JSX.Element {
                   key={date}
                   layout
                   whileTap={{ scale: 0.97 }}
-                  className={`day ${date === selected ? 'day-active' : ''} ${date === today ? 'day-today' : ''}`}
+                  className={`day ${date === selected && view === 'day' ? 'day-active' : ''} ${date === today ? 'day-today' : ''}`}
                   onClick={() => {
                     setSelected(date)
+                    setView('day')
                     setOpenNoteId(null)
                   }}
                   data-date={date}
@@ -138,6 +144,16 @@ export default function App(): React.JSX.Element {
               )
             })}
           </div>
+          <button
+            className={`day notes-link ${view === 'notes' ? 'day-active' : ''}`}
+            onClick={() => {
+              setView('notes')
+              setOpenNoteId(null)
+            }}
+          >
+            <span className="day-label">▤ Notatki</span>
+            {realNotes.length > 0 && <span className="badge">{realNotes.length}</span>}
+          </button>
           <label className="settings">
             Start pracy
             <input
@@ -153,34 +169,40 @@ export default function App(): React.JSX.Element {
         <main className="panel">
           <AnimatePresence mode="wait">
             <motion.div
-              key={selected + (openNoteId ?? '')}
+              key={`${view}:${selected}:${openNoteId ?? ''}`}
               className="panel-inner"
               initial={{ opacity: 0, x: 24 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -24 }}
               transition={{ duration: 0.18 }}
             >
-              <header className="day-header">
-                <h2 className="panel-title">{dayLabel(selected)}</h2>
-                <DayFuse todos={todos} workStart={workStart} date={selected} />
-              </header>
-              {!openNoteId && (
-                <Todos
-                  date={selected}
-                  todos={todos}
-                  notes={notes}
+              {view === 'day' ? (
+                <>
+                  <header className="day-header">
+                    <h2 className="panel-title">{dayLabel(selected)}</h2>
+                    <DayFuse todos={todos} workStart={workStart} date={selected} />
+                  </header>
+                  <Todos
+                    date={selected}
+                    todos={todos}
+                    notes={realNotes}
+                    onChange={reload}
+                    onOpenNote={(id) => {
+                      setOpenNoteId(id)
+                      setView('notes')
+                    }}
+                    highlightId={highlightId}
+                  />
+                  <DayNote date={selected} />
+                </>
+              ) : (
+                <Notes
+                  notes={realNotes}
+                  openNoteId={openNoteId}
+                  onOpen={setOpenNoteId}
                   onChange={reload}
-                  onOpenNote={setOpenNoteId}
-                  highlightId={highlightId}
                 />
               )}
-              <Notes
-                date={selected}
-                notes={notes}
-                openNoteId={openNoteId}
-                onOpen={setOpenNoteId}
-                onChange={reload}
-              />
             </motion.div>
           </AnimatePresence>
         </main>

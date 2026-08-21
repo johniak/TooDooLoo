@@ -140,3 +140,9 @@ export function saveNote(id: string, patch: { title?: string; body?: string }): 
 export function deleteNote(id: string): void {
   fs.rmSync(noteFile(id), { force: true })
 }
+
+/** Notatka dnia: jedna na dzień, id deterministyczne, tworzona przy pierwszym zapisie. */
+export function saveDayNote(date: string, body: string): void {
+  ensureDirs()
+  fs.writeFileSync(noteFile(`day-${date}`), serializeNote({ id: `day-${date}`, title: 'Notatka dnia', date }, body))
+}

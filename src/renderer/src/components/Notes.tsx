@@ -4,10 +4,9 @@ import { useEditor, useEditorState, EditorContent, Editor as TiptapEditor } from
 import StarterKit from '@tiptap/starter-kit'
 import { Markdown } from '@tiptap/markdown'
 import { Placeholder } from '@tiptap/extensions'
-import { NoteMeta, dayLabel } from '../../../shared/core'
+import { NoteMeta, dayLabel, todayStr } from '../../../shared/core'
 
 type Props = {
-  date: string
   notes: NoteMeta[]
   openNoteId: string | null
   onOpen: (id: string | null) => void
@@ -86,19 +85,17 @@ const FORMAT_BUTTONS: {
   }
 ]
 
-function VisualEditor({
+export function VisualEditor({
   body,
-  onSave
+  onSave,
+  placeholder = 'Pisz swobodnie — zapisuję jako markdown…'
 }: {
   body: string
   onSave: (md: string) => void
+  placeholder?: string
 }): React.JSX.Element {
   const editor = useEditor({
-    extensions: [
-      StarterKit,
-      Markdown,
-      Placeholder.configure({ placeholder: 'Pisz swobodnie — zapisuję jako markdown…' })
-    ],
+    extensions: [StarterKit, Markdown, Placeholder.configure({ placeholder })],
     content: body,
     contentType: 'markdown',
     onUpdate: ({ editor }) => onSave(editor.getMarkdown())
@@ -121,6 +118,7 @@ function VisualEditor({
             title={b.title}
             aria-pressed={!!active?.[b.key]}
             className={`rt-btn rt-${b.key} ${active?.[b.key] ? 'rt-active' : ''}`}
+            onMouseDown={(e) => e.preventDefault()}
             onClick={() => run(b)}
           >
             {b.label}
@@ -141,7 +139,7 @@ function Editor({
   notes,
   onOpen,
   onChange
-}: Omit<Props, 'date' | 'openNoteId'> & { id: string }): React.JSX.Element {
+}: Omit<Props, 'openNoteId'> & { id: string }): React.JSX.Element {
   const [title, setTitle] = useState('')
   const [body, setBody] = useState('')
   const [mode, setMode] = useState<'md' | 'visual'>(
@@ -283,15 +281,7 @@ function Editor({
   )
 }
 
-export default function Notes({
-  date,
-  notes,
-  openNoteId,
-  onOpen,
-  onChange
-}: Props): React.JSX.Element {
-  const [scope, setScope] = useState<'day' | 'all'>('day')
-
+export default function Notes({ notes, openNoteId, onOpen, onChange }: Props): React.JSX.Element {
   if (openNoteId) {
     return (
       <section className="notes" aria-label="Notatki">
@@ -300,24 +290,16 @@ export default function Notes({
     )
   }
 
-  const visible = notes.filter((n) => !n.parentId && (scope === 'all' || n.date === date))
+  const visible = notes.filter((n) => !n.parentId)
 
   return (
     <section className="notes" aria-label="Notatki">
       <div className="notes-header">
-        <h3>Notatki</h3>
-        <div className="scope-toggle">
-          <button className={scope === 'day' ? 'scope-active' : ''} onClick={() => setScope('day')}>
-            Dzień
-          </button>
-          <button className={scope === 'all' ? 'scope-active' : ''} onClick={() => setScope('all')}>
-            Wszystkie
-          </button>
-        </div>
+        <h3>Wszystkie notatki</h3>
         <button
           className="btn-primary"
           onClick={async () => {
-            const meta = await window.api.createNote({ title: 'Nowa notatka', date })
+            const meta = await window.api.createNote({ title: 'Nowa notatka', date: todayStr() })
             onChange()
             onOpen(meta.id)
           }}
@@ -346,7 +328,7 @@ export default function Notes({
       </div>
       {visible.length === 0 && (
         <div className="empty empty-sm">
-          <p>Żadnej notatki{scope === 'day' ? ' tego dnia' : ''}. „＋ Notatka" zaczyna nową kartkę.</p>
+          <p>Żadnej notatki. „＋ Notatka" zaczyna nową kartkę.</p>
         </div>
       )}
     </section>

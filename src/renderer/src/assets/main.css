@@ -183,6 +183,29 @@ textarea {
   opacity: 0.8;
 }
 
+.notes-link {
+  width: 100%;
+  border-top: 1px solid var(--line);
+  border-radius: 0 0 10px 10px;
+  padding-top: var(--s2);
+  -webkit-app-region: no-drag;
+}
+
+.day-note {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s3);
+}
+
+.day-note-card {
+  padding: var(--card-pad);
+}
+
+.day-note-card .note-body,
+.day-note-card .note-visual .tiptap {
+  min-height: 140px;
+}
+
 .settings {
   margin-top: auto;
   display: flex;
