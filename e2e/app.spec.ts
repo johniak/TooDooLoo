@@ -124,7 +124,7 @@ test('link z todosa do notatki otwiera notatkę', async () => {
   await page.getByRole('button', { name: 'Dodaj', exact: true }).click()
 
   const todo = page.locator('.todo', { hasText: 'Przeczytać spec' })
-  await todo.locator('button[title="Powiąż z notatką"]').click()
+  await todo.locator('button[title="Podepnij link lub notatkę"]').click()
   await page.locator('.picker-option', { hasText: 'Specyfikacja' }).click()
 
   await expect(todo.locator('.todo-note-link')).toContainText('Specyfikacja')
@@ -191,6 +191,28 @@ test('open-todo (klik w powiadomienie) przełącza dzień i podświetla todosa',
 
   await expect(page.locator('.day-active .day-label')).toHaveText('Dzisiaj')
   await expect(page.locator('.todo-flash')).toContainText('Ważny task')
+  await app.close()
+})
+
+test('link http na todosie: dodanie, chip z domeną, normalizacja https', async () => {
+  const { app, page, dataDir } = await launch({
+    seedTodos: [{ text: 'Przejrzeć PR', date: daysAgo(0) }]
+  })
+  const todo = page.locator('.todo', { hasText: 'Przejrzeć PR' })
+  await todo.locator('button[title="Podepnij link lub notatkę"]').click()
+  await page.locator('.picker-url').fill('github.com/johniak/TooDooLoo/pull/7')
+  await page.keyboard.press('Enter')
+
+  await expect(todo.locator('.todo-url')).toContainText('github.com')
+  await expect
+    .poll(() => JSON.parse(fs.readFileSync(path.join(dataDir, 'todos.json'), 'utf8'))[0].url)
+    .toBe('https://github.com/johniak/TooDooLoo/pull/7')
+
+  // pusty input odpina link
+  await todo.locator('button[title="Podepnij link lub notatkę"]').click()
+  await page.locator('.picker-url').fill('')
+  await page.keyboard.press('Enter')
+  await expect(todo.locator('.todo-url')).toHaveCount(0)
   await app.close()
 })
 

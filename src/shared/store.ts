@@ -61,6 +61,8 @@ export function updateTodo(id: string, patch: Partial<Todo>): Todo | null {
   const todo = todos.find((t) => t.id === id)
   if (!todo) return null
   Object.assign(todo, patch, { id: todo.id })
+  if (!todo.url) delete todo.url
+  if (!todo.noteId) delete todo.noteId
   saveTodos(todos)
   return todo
 }

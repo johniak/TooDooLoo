@@ -7,6 +7,7 @@ export type Todo = {
   done: boolean
   urgency: Urgency
   noteId?: string
+  url?: string // link http(s) podpięty do todosa
   createdAt: string
 }
 

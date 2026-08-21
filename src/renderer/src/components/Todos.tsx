@@ -2,6 +2,17 @@ import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Todo, NoteMeta, Urgency, URGENCIES } from '../../../shared/core'
 
+const hostname = (u: string): string => {
+  try {
+    return new URL(u).hostname
+  } catch {
+    return u
+  }
+}
+
+const normalizeUrl = (v: string): string =>
+  v && !/^https?:\/\//i.test(v) ? `https://${v}` : v
+
 function Sparks(): React.JSX.Element {
   return (
     <span className="sparks">
@@ -119,6 +130,15 @@ export default function Todos({
                   {burstId === t.id && <Sparks />}
                 </button>
                 <span className="todo-text">{t.text}</span>
+                {t.url && (
+                  <button
+                    className="todo-note-link todo-url"
+                    title={t.url}
+                    onClick={() => window.open(t.url)}
+                  >
+                    ⌁ {hostname(t.url)}
+                  </button>
+                )}
                 {t.noteId && (
                   <button className="todo-note-link" onClick={() => onOpenNote?.(t.noteId!)}>
                     ▤ {notes.find((n) => n.id === t.noteId)?.title ?? 'notatka'}
@@ -135,17 +155,15 @@ export default function Todos({
                 >
                   <span className="ember-dot ember-glow" style={{ background: u.color }} />
                 </button>
-                {!t.noteId && (
-                  <button
-                    className="todo-icon"
-                    title="Powiąż z notatką"
-                    onClick={() =>
-                      setPickerFor(pickerOpen && pickerFor.kind === 'link' ? null : { id: t.id, kind: 'link' })
-                    }
-                  >
-                    🔗
-                  </button>
-                )}
+                <button
+                  className="todo-icon"
+                  title="Podepnij link lub notatkę"
+                  onClick={() =>
+                    setPickerFor(pickerOpen && pickerFor.kind === 'link' ? null : { id: t.id, kind: 'link' })
+                  }
+                >
+                  🔗
+                </button>
                 <button
                   className="todo-icon todo-delete"
                   title="Usuń"
@@ -179,20 +197,51 @@ export default function Todos({
                 )}
                 {pickerOpen && pickerFor.kind === 'link' && (
                   <div className="picker">
-                    {notes.length === 0 && <span className="muted picker-empty">Brak notatek</span>}
-                    {notes.map((n) => (
+                    <input
+                      className="picker-url"
+                      placeholder="https://…  (Enter zapisuje)"
+                      defaultValue={t.url ?? ''}
+                      autoFocus
+                      onKeyDown={async (e) => {
+                        if (e.key !== 'Enter') return
+                        await window.api.updateTodo(t.id, {
+                          url: normalizeUrl(e.currentTarget.value.trim())
+                        })
+                        setPickerFor(null)
+                        onChange()
+                      }}
+                    />
+                    {t.noteId ? (
                       <button
-                        key={n.id}
                         className="picker-option"
                         onClick={async () => {
-                          await window.api.updateTodo(t.id, { noteId: n.id })
+                          await window.api.updateTodo(t.id, { noteId: '' })
                           setPickerFor(null)
                           onChange()
                         }}
                       >
-                        ▤ {n.title}
+                        ✕ Odepnij notatkę
                       </button>
-                    ))}
+                    ) : (
+                      <>
+                        {notes.length === 0 && (
+                          <span className="muted picker-empty">Brak notatek</span>
+                        )}
+                        {notes.map((n) => (
+                          <button
+                            key={n.id}
+                            className="picker-option"
+                            onClick={async () => {
+                              await window.api.updateTodo(t.id, { noteId: n.id })
+                              setPickerFor(null)
+                              onChange()
+                            }}
+                          >
+                            ▤ {n.title}
+                          </button>
+                        ))}
+                      </>
+                    )}
                   </div>
                 )}
               </motion.li>

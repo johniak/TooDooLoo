@@ -52,12 +52,13 @@ server.registerTool(
       text: z.string().min(1),
       date: dateArg.optional(),
       urgency: urgency.optional(),
-      noteId: z.string().optional().describe('Id notatki do powiązania')
+      noteId: z.string().optional().describe('Id notatki do powiązania'),
+      url: z.string().optional().describe('Link http(s) podpięty do todosa')
     }
   },
-  async ({ text, date, urgency: u, noteId }) => {
-    const todo = store.addTodo({ text, date: date ?? todayStr(), urgency: u ?? 'medium' })
-    if (noteId) store.updateTodo(todo.id, { noteId })
+  async ({ text, date, urgency: u, noteId, url }) => {
+    let todo = store.addTodo({ text, date: date ?? todayStr(), urgency: u ?? 'medium' })
+    if (noteId || url) todo = store.updateTodo(todo.id, { noteId, url })!
     return json(todo)
   }
 )
@@ -72,7 +73,8 @@ server.registerTool(
       done: z.boolean().optional(),
       urgency: urgency.optional(),
       date: dateArg.optional(),
-      noteId: z.string().optional()
+      noteId: z.string().optional().describe('Pusty string odpina notatkę'),
+      url: z.string().optional().describe('Link http(s); pusty string odpina')
     }
   },
   async ({ id, ...patch }) => {

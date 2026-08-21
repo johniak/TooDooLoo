@@ -62,12 +62,23 @@ test('MCP: pełny cykl todosów i notatek przez stdio', async () => {
   const mcp = mcpClient(dataDir)
 
   // todo: dodaj → listuj → odznacz → zmień pilność
-  const added = JSON.parse(await mcp.call('add_todo', { text: 'Z MCP', urgency: 'high' }))
+  const added = JSON.parse(
+    await mcp.call('add_todo', { text: 'Z MCP', urgency: 'high', url: 'https://example.com/x' })
+  )
   const todoId = JSON.parse(added.content[0].text).id
   expect(await mcp.call('list_todos', {})).toContain('Z MCP')
   await mcp.call('update_todo', { id: todoId, done: true, urgency: 'low' })
   const onDisk = JSON.parse(fs.readFileSync(path.join(dataDir, 'todos.json'), 'utf8'))
-  expect(onDisk[0]).toMatchObject({ text: 'Z MCP', done: true, urgency: 'low' })
+  expect(onDisk[0]).toMatchObject({
+    text: 'Z MCP',
+    done: true,
+    urgency: 'low',
+    url: 'https://example.com/x'
+  })
+  await mcp.call('update_todo', { id: todoId, url: '' })
+  expect(
+    JSON.parse(fs.readFileSync(path.join(dataDir, 'todos.json'), 'utf8'))[0].url
+  ).toBeUndefined()
 
   // notatka: utwórz z treścią → pobierz → zmień → wylistuj
   const created = JSON.parse(await mcp.call('create_note', { title: 'Specyfikacja', body: '# Hej' }))
