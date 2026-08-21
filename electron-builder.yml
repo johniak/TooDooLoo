@@ -1,5 +1,5 @@
-appId: com.electron.app
-productName: toodooloo
+appId: com.toodooloo.app
+productName: TooDooLoo
 directories:
   buildResources: build
 files:
