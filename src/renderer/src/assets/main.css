@@ -652,39 +652,114 @@ textarea {
   user-select: text;
 }
 
-.note-preview {
+/* --- edytor wizualny (TipTap) --- */
+.note-visual {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s2);
+}
+
+.rt-toolbar {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.rt-btn {
+  min-width: 32px;
+  height: 30px;
+  padding: 0 var(--s1);
+  display: grid;
+  place-items: center;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  font-size: 13px;
+  color: var(--muted);
+  font-family: var(--display);
+}
+
+.rt-italic {
+  font-style: italic;
+}
+
+.rt-strike {
+  text-decoration: line-through;
+}
+
+.rt-btn:hover {
+  color: var(--text);
+  background: var(--surface-2);
+}
+
+.rt-active {
+  background: var(--ember);
+  border-color: var(--ember);
+  color: #1c150e;
+}
+
+.note-visual .tiptap {
+  min-height: 280px;
+  outline: none;
   line-height: 1.65;
   user-select: text;
 }
 
-.note-preview h1,
-.note-preview h2,
-.note-preview h3 {
+.note-visual .tiptap h1,
+.note-visual .tiptap h2,
+.note-visual .tiptap h3 {
   font-family: var(--display);
   letter-spacing: -0.02em;
   margin: 0.7em 0 0.35em;
 }
 
-.note-preview h1:first-child,
-.note-preview h2:first-child,
-.note-preview p:first-child {
+.note-visual .tiptap > :first-child {
   margin-top: 0;
 }
 
-.note-preview ul,
-.note-preview ol {
+.note-visual .tiptap ul,
+.note-visual .tiptap ol {
   padding-left: 1.4em;
 }
 
-.note-preview code {
+.note-visual .tiptap code {
   background: var(--bg);
   padding: 2px 5px;
   border-radius: 5px;
   font-size: 0.9em;
+  font-family: ui-monospace, 'SF Mono', monospace;
 }
 
-.note-preview a {
+.note-visual .tiptap pre {
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: var(--s2) var(--s3);
+  margin: 0.5em 0;
+  overflow-x: auto;
+}
+
+.note-visual .tiptap pre code {
+  background: none;
+  padding: 0;
+}
+
+.note-visual .tiptap blockquote {
+  border-left: 3px solid var(--ember);
+  margin: 0.5em 0;
+  padding-left: var(--s3);
+  color: var(--muted);
+}
+
+.note-visual .tiptap a {
   color: var(--dawn);
+}
+
+.note-visual .tiptap p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  color: var(--faint);
+  float: left;
+  height: 0;
+  pointer-events: none;
 }
 
 .note-children {

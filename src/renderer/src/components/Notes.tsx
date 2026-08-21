@@ -1,6 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { marked } from 'marked'
+import { useEditor, useEditorState, EditorContent, Editor as TiptapEditor } from '@tiptap/react'
+import StarterKit from '@tiptap/starter-kit'
+import { Markdown } from '@tiptap/markdown'
+import { Placeholder } from '@tiptap/extensions'
 import { NoteMeta, dayLabel } from '../../../shared/core'
 
 type Props = {
@@ -11,10 +14,139 @@ type Props = {
   onChange: () => void
 }
 
-function Editor({ id, notes, onOpen, onChange }: Omit<Props, 'date' | 'openNoteId'> & { id: string }): React.JSX.Element {
+const FORMAT_BUTTONS: {
+  key: string
+  label: string
+  title: string
+  isActive: (e: TiptapEditor) => boolean
+  run: (e: TiptapEditor) => void
+}[] = [
+  {
+    key: 'bold',
+    label: 'B',
+    title: 'Pogrubienie',
+    isActive: (e) => e.isActive('bold'),
+    run: (e) => e.chain().focus().toggleBold().run()
+  },
+  {
+    key: 'italic',
+    label: 'I',
+    title: 'Kursywa',
+    isActive: (e) => e.isActive('italic'),
+    run: (e) => e.chain().focus().toggleItalic().run()
+  },
+  {
+    key: 'strike',
+    label: 'S',
+    title: 'Przekreślenie',
+    isActive: (e) => e.isActive('strike'),
+    run: (e) => e.chain().focus().toggleStrike().run()
+  },
+  {
+    key: 'h1',
+    label: 'H1',
+    title: 'Nagłówek 1',
+    isActive: (e) => e.isActive('heading', { level: 1 }),
+    run: (e) => e.chain().focus().toggleHeading({ level: 1 }).run()
+  },
+  {
+    key: 'h2',
+    label: 'H2',
+    title: 'Nagłówek 2',
+    isActive: (e) => e.isActive('heading', { level: 2 }),
+    run: (e) => e.chain().focus().toggleHeading({ level: 2 }).run()
+  },
+  {
+    key: 'bullet',
+    label: '•',
+    title: 'Lista',
+    isActive: (e) => e.isActive('bulletList'),
+    run: (e) => e.chain().focus().toggleBulletList().run()
+  },
+  {
+    key: 'ordered',
+    label: '1.',
+    title: 'Lista numerowana',
+    isActive: (e) => e.isActive('orderedList'),
+    run: (e) => e.chain().focus().toggleOrderedList().run()
+  },
+  {
+    key: 'quote',
+    label: '❝',
+    title: 'Cytat',
+    isActive: (e) => e.isActive('blockquote'),
+    run: (e) => e.chain().focus().toggleBlockquote().run()
+  },
+  {
+    key: 'code',
+    label: '</>',
+    title: 'Blok kodu',
+    isActive: (e) => e.isActive('codeBlock'),
+    run: (e) => e.chain().focus().toggleCodeBlock().run()
+  }
+]
+
+function VisualEditor({
+  body,
+  onSave
+}: {
+  body: string
+  onSave: (md: string) => void
+}): React.JSX.Element {
+  const editor = useEditor({
+    extensions: [
+      StarterKit,
+      Markdown,
+      Placeholder.configure({ placeholder: 'Pisz swobodnie — zapisuję jako markdown…' })
+    ],
+    content: body,
+    contentType: 'markdown',
+    onUpdate: ({ editor }) => onSave(editor.getMarkdown())
+  })
+
+  const active = useEditorState({
+    editor,
+    selector: ({ editor }) =>
+      editor ? Object.fromEntries(FORMAT_BUTTONS.map((b) => [b.key, b.isActive(editor)])) : {}
+  })
+
+  if (!editor) return <></>
+
+  return (
+    <div className="note-visual">
+      <div className="rt-toolbar" role="toolbar" aria-label="Formatowanie">
+        {FORMAT_BUTTONS.map((b) => (
+          <button
+            key={b.key}
+            title={b.title}
+            aria-pressed={!!active?.[b.key]}
+            className={`rt-btn rt-${b.key} ${active?.[b.key] ? 'rt-active' : ''}`}
+            onClick={() => run(b)}
+          >
+            {b.label}
+          </button>
+        ))}
+      </div>
+      <EditorContent editor={editor} />
+    </div>
+  )
+
+  function run(b: (typeof FORMAT_BUTTONS)[number]): void {
+    if (editor) b.run(editor)
+  }
+}
+
+function Editor({
+  id,
+  notes,
+  onOpen,
+  onChange
+}: Omit<Props, 'date' | 'openNoteId'> & { id: string }): React.JSX.Element {
   const [title, setTitle] = useState('')
   const [body, setBody] = useState('')
-  const [preview, setPreview] = useState(false)
+  const [mode, setMode] = useState<'md' | 'visual'>(
+    () => (localStorage.getItem('note-mode') as 'md' | 'visual') || 'md'
+  )
   const [loaded, setLoaded] = useState(false)
   const saveTimer = useRef<ReturnType<typeof setTimeout>>(undefined)
   const pending = useRef<{ title?: string; body?: string }>({})
@@ -23,7 +155,6 @@ function Editor({ id, notes, onOpen, onChange }: Omit<Props, 'date' | 'openNoteI
 
   useEffect(() => {
     setLoaded(false)
-    setPreview(false)
     window.api.getNote(id).then((n) => {
       if (n) {
         setTitle(n.meta.title)
@@ -52,6 +183,11 @@ function Editor({ id, notes, onOpen, onChange }: Omit<Props, 'date' | 'openNoteI
     }, 300)
   }
 
+  const switchMode = (m: 'md' | 'visual'): void => {
+    setMode(m)
+    localStorage.setItem('note-mode', m)
+  }
+
   if (!loaded) return <div className="muted">…</div>
 
   return (
@@ -73,9 +209,24 @@ function Editor({ id, notes, onOpen, onChange }: Omit<Props, 'date' | 'openNoteI
             save({ title: e.target.value })
           }}
         />
-        <button className="btn-ghost" onClick={() => setPreview(!preview)}>
-          {preview ? 'Edycja' : 'Podgląd'}
-        </button>
+        <div className="scope-toggle" role="radiogroup" aria-label="Tryb edycji">
+          <button
+            role="radio"
+            aria-checked={mode === 'md'}
+            className={mode === 'md' ? 'scope-active' : ''}
+            onClick={() => switchMode('md')}
+          >
+            Md
+          </button>
+          <button
+            role="radio"
+            aria-checked={mode === 'visual'}
+            className={mode === 'visual' ? 'scope-active' : ''}
+            onClick={() => switchMode('visual')}
+          >
+            Wizualnie
+          </button>
+        </div>
         <button
           className="btn-ghost todo-delete"
           onClick={async () => {
@@ -87,8 +238,15 @@ function Editor({ id, notes, onOpen, onChange }: Omit<Props, 'date' | 'openNoteI
           Usuń
         </button>
       </div>
-      {preview ? (
-        <div className="note-preview" dangerouslySetInnerHTML={{ __html: marked.parse(body) as string }} />
+      {mode === 'visual' ? (
+        <VisualEditor
+          key={id}
+          body={body}
+          onSave={(md) => {
+            setBody(md)
+            save({ body: md })
+          }}
+        />
       ) : (
         <textarea
           className="note-body"
@@ -125,7 +283,13 @@ function Editor({ id, notes, onOpen, onChange }: Omit<Props, 'date' | 'openNoteI
   )
 }
 
-export default function Notes({ date, notes, openNoteId, onOpen, onChange }: Props): React.JSX.Element {
+export default function Notes({
+  date,
+  notes,
+  openNoteId,
+  onOpen,
+  onChange
+}: Props): React.JSX.Element {
   const [scope, setScope] = useState<'day' | 'all'>('day')
 
   if (openNoteId) {

@@ -6,6 +6,11 @@ import * as storage from './storage'
 import { startReminders } from './reminders'
 import { DaySummary, Todo } from '../shared/core'
 
+// w testach izolujemy też userData (localStorage itd.), nie tylko pliki danych
+if (process.env.TOODOOLOO_DATA_DIR) {
+  app.setPath('userData', join(process.env.TOODOOLOO_DATA_DIR, 'electron'))
+}
+
 function createWindow(): void {
   const mainWindow = new BrowserWindow({
     width: 1280,

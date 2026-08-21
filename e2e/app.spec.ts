@@ -53,15 +53,16 @@ test('rollover: nieodznaczony todos z wczoraj przechodzi na dziś', async () => 
   await app.close()
 })
 
-test('notatki: tworzenie, edycja md z podglądem, podstrona, widok globalny', async () => {
+test('notatki: tworzenie, edycja md, tryb wizualny, podstrona, widok globalny', async () => {
   const { app, page } = await launch()
   await page.getByRole('button', { name: '＋ Notatka' }).click()
 
   await page.locator('.note-title').fill('Plan sprintu')
   await page.locator('.note-body').fill('# Cele\n\n- wysyłka **v1**')
-  await page.getByRole('button', { name: 'Podgląd' }).click()
-  await expect(page.locator('.note-preview h1')).toHaveText('Cele')
-  await expect(page.locator('.note-preview strong')).toHaveText('v1')
+  await page.getByRole('radio', { name: 'Wizualnie' }).click()
+  await expect(page.locator('.note-visual .tiptap h1')).toHaveText('Cele')
+  await expect(page.locator('.note-visual .tiptap strong')).toHaveText('v1')
+  await page.getByRole('radio', { name: 'Md' }).click()
 
   await page.getByRole('button', { name: '＋ podstrona' }).click()
   await expect(page.locator('.note-title')).toHaveValue('Podstrona') // edytor przełączył się na podstronę
@@ -76,6 +77,39 @@ test('notatki: tworzenie, edycja md z podglądem, podstrona, widok globalny', as
 
   await page.getByRole('button', { name: 'Wszystkie', exact: true }).click()
   await expect(page.locator('.note-card', { hasText: 'Plan sprintu' })).toBeVisible()
+  await app.close()
+})
+
+test('edytor wizualny: pisanie i formatowanie zapisuje się jako markdown', async () => {
+  const { app, page, dataDir } = await launch()
+  await page.getByRole('button', { name: '＋ Notatka' }).click()
+  await page.getByRole('radio', { name: 'Wizualnie' }).click()
+
+  const editor = page.locator('.note-visual .tiptap')
+  await editor.click()
+  await page.keyboard.type('Cele sprintu')
+  await page.locator('.rt-btn[title="Nagłówek 1"]').click()
+  await expect(editor.locator('h1')).toHaveText('Cele sprintu')
+
+  await page.keyboard.press('End')
+  await page.keyboard.press('Enter')
+  await page.keyboard.type('bardzo ')
+  await page.locator('.rt-btn[title="Pogrubienie"]').click()
+  await expect(page.locator('.rt-btn[title="Pogrubienie"]')).toHaveAttribute('aria-pressed', 'true')
+  await page.keyboard.type('ważne')
+  await expect(editor.locator('strong')).toHaveText('ważne')
+
+  await expect
+    .poll(() => {
+      const dir = path.join(dataDir, 'notes')
+      const files = fs.existsSync(dir) ? fs.readdirSync(dir) : []
+      return files.map((f) => fs.readFileSync(path.join(dir, f), 'utf8')).join('\n')
+    })
+    .toContain('# Cele sprintu')
+
+  // w trybie Md widać wygenerowany markdown
+  await page.getByRole('radio', { name: 'Md' }).click()
+  await expect(page.locator('.note-body')).toHaveValue(/# Cele sprintu[\s\S]*\*\*ważne\*\*/)
   await app.close()
 })
 
