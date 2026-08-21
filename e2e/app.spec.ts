@@ -1,0 +1,117 @@
+import { test, expect } from '@playwright/test'
+import fs from 'fs'
+import path from 'path'
+import { launch, daysAgo } from './helpers'
+
+test('appka startuje i pokazuje dzisiejszy dzień', async () => {
+  const { app, page } = await launch()
+  await expect(page.locator('.logo')).toHaveText('TooDooLoo')
+  await expect(page.locator('.day-active .day-label')).toHaveText('Dzisiaj')
+  await app.close()
+})
+
+test('dodawanie, odznaczanie i usuwanie todosa', async () => {
+  const { app, page } = await launch()
+  await page.getByPlaceholder('Co jest do zrobienia?').fill('Kupić kawę')
+  await page.getByRole('button', { name: 'Dodaj', exact: true }).click()
+
+  const todo = page.locator('.todo', { hasText: 'Kupić kawę' })
+  await expect(todo).toBeVisible()
+
+  await todo.locator('.todo-check').click()
+  await expect(todo).toHaveClass(/todo-done/)
+
+  await todo.locator('.todo-delete').click()
+  await expect(todo).toHaveCount(0)
+  await app.close()
+})
+
+test('zmiana pilności segmented controlem na todosie', async () => {
+  const { app, page, dataDir } = await launch({
+    seedTodos: [{ text: 'Raport', date: daysAgo(0) }]
+  })
+  const todo = page.locator('.todo', { hasText: 'Raport' })
+  await todo.locator('.urgency-dot[title="Natychmiast"]').click()
+  await expect(todo.locator('.urgency-dot[title="Natychmiast"]')).toHaveAttribute(
+    'aria-checked',
+    'true'
+  )
+  await expect
+    .poll(() => JSON.parse(fs.readFileSync(path.join(dataDir, 'todos.json'), 'utf8'))[0].urgency)
+    .toBe('immediate')
+  await app.close()
+})
+
+test('rollover: nieodznaczony todos z wczoraj przechodzi na dziś', async () => {
+  const { app, page } = await launch({
+    seedTodos: [
+      { text: 'Zaległy task', date: daysAgo(1) },
+      { text: 'Zrobiony wczoraj', date: daysAgo(1), done: true }
+    ]
+  })
+  await expect(page.locator('.day-active .day-label')).toHaveText('Dzisiaj')
+  await expect(page.locator('.todo', { hasText: 'Zaległy task' })).toBeVisible()
+  await expect(page.locator('.todo', { hasText: 'Zrobiony wczoraj' })).toHaveCount(0)
+  await app.close()
+})
+
+test('notatki: tworzenie, edycja md z podglądem, podstrona, widok globalny', async () => {
+  const { app, page } = await launch()
+  await page.getByRole('button', { name: '＋ Notatka' }).click()
+
+  await page.locator('.note-title').fill('Plan sprintu')
+  await page.locator('.note-body').fill('# Cele\n\n- wysyłka **v1**')
+  await page.getByRole('button', { name: 'Podgląd' }).click()
+  await expect(page.locator('.note-preview h1')).toHaveText('Cele')
+  await expect(page.locator('.note-preview strong')).toHaveText('v1')
+
+  await page.getByRole('button', { name: '＋ podstrona' }).click()
+  await page.locator('.note-title').fill('Szczegóły')
+  await page.getByRole('button', { name: '← Wróć' }).click()
+  await expect(page.locator('.note-chip', { hasText: 'Szczegóły' })).toBeVisible()
+
+  await page.getByRole('button', { name: '← Wróć' }).click()
+  await expect(page.locator('.note-card', { hasText: 'Plan sprintu' })).toBeVisible()
+  // podstrona nie jest listowana jako top-level, ale jest w widoku globalnym po wejściu w rodzica
+  await expect(page.locator('.note-card', { hasText: 'Szczegóły' })).toHaveCount(0)
+
+  await page.getByRole('button', { name: 'Wszystkie', exact: true }).click()
+  await expect(page.locator('.note-card', { hasText: 'Plan sprintu' })).toBeVisible()
+  await app.close()
+})
+
+test('link z todosa do notatki otwiera notatkę', async () => {
+  const { app, page } = await launch()
+  await page.getByRole('button', { name: '＋ Notatka' }).click()
+  await page.locator('.note-title').fill('Specyfikacja')
+  await page.getByRole('button', { name: '← Wróć' }).click()
+
+  await page.getByPlaceholder('Co jest do zrobienia?').fill('Przeczytać spec')
+  await page.getByRole('button', { name: 'Dodaj', exact: true }).click()
+
+  const todo = page.locator('.todo', { hasText: 'Przeczytać spec' })
+  await todo.locator('button[title="Powiąż z notatką"]').click()
+  await page.locator('.link-option', { hasText: 'Specyfikacja' }).click()
+
+  await expect(todo.locator('.todo-note-link')).toContainText('Specyfikacja')
+  await todo.locator('.todo-note-link').click()
+  await expect(page.locator('.note-title')).toHaveValue('Specyfikacja')
+  await app.close()
+})
+
+test('przypomnienie: todos immediate generuje powiadomienie', async () => {
+  const notifyFile = path.join(
+    fs.mkdtempSync(path.join(require('os').tmpdir(), 'toodooloo-notify-')),
+    'notify.log'
+  )
+  const { app } = await launch({
+    seedTodos: [{ text: 'Pilna sprawa', date: daysAgo(0), urgency: 'immediate' }],
+    env: { TOODOOLOO_NOTIFY_FILE: notifyFile, TOODOOLOO_TICK_MS: '200' }
+  })
+  await expect
+    .poll(() => (fs.existsSync(notifyFile) ? fs.readFileSync(notifyFile, 'utf8') : ''), {
+      timeout: 10_000
+    })
+    .toContain('Pilna sprawa')
+  await app.close()
+})
