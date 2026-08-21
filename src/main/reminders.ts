@@ -1,7 +1,7 @@
-import { Notification } from 'electron'
+import { BrowserWindow, Notification } from 'electron'
 import fs from 'fs'
 import { dueReminders, Todo, URGENCIES } from '../shared/core'
-import { loadTodos, rollover } from './storage'
+import { loadSettings, loadTodos, rollover } from './storage'
 
 const lastNotified = new Map<string, number>()
 
@@ -13,7 +13,16 @@ function notify(todo: Todo): void {
     fs.appendFileSync(file, `${todo.text}\n`)
     return
   }
-  new Notification({ title: `TooDooLoo — ${label}`, body: todo.text }).show()
+  const n = new Notification({ title: `TooDooLoo — ${label}`, body: todo.text })
+  n.on('click', () => {
+    const win = BrowserWindow.getAllWindows()[0]
+    if (win) {
+      win.show()
+      win.focus()
+      win.webContents.send('open-todo', { id: todo.id, date: todo.date })
+    }
+  })
+  n.show()
 }
 
 export function startReminders(): void {
@@ -21,7 +30,7 @@ export function startReminders(): void {
   setInterval(() => {
     rollover() // łapie też zmianę dnia o północy przy działającej appce
     const now = new Date()
-    for (const todo of dueReminders(loadTodos(), now, lastNotified)) {
+    for (const todo of dueReminders(loadTodos(), now, lastNotified, loadSettings().workStart)) {
       notify(todo)
       lastNotified.set(todo.id, now.getTime())
     }

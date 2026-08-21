@@ -52,6 +52,8 @@ function registerIpc(): void {
     for (const n of storage.listNotes()) day(n.date).notes++
     return summary
   })
+  ipcMain.handle('settings:get', () => storage.loadSettings())
+  ipcMain.handle('settings:set', (_e, s) => storage.saveSettings(s))
   ipcMain.handle('notes:list', () => storage.listNotes())
   ipcMain.handle('notes:get', (_e, id: string) => storage.getNote(id))
   ipcMain.handle('notes:create', (_e, input) => storage.createNote(input))

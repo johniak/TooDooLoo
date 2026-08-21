@@ -30,9 +30,17 @@ type Props = {
   notes: NoteMeta[]
   onChange: () => void
   onOpenNote?: (id: string) => void
+  highlightId?: string | null
 }
 
-export default function Todos({ date, todos, notes, onChange, onOpenNote }: Props): React.JSX.Element {
+export default function Todos({
+  date,
+  todos,
+  notes,
+  onChange,
+  onOpenNote,
+  highlightId
+}: Props): React.JSX.Element {
   const [text, setText] = useState('')
   const [urgency, setUrgency] = useState<Urgency>('medium')
   const [burstId, setBurstId] = useState<string | null>(null)
@@ -93,7 +101,7 @@ export default function Todos({ date, todos, notes, onChange, onOpenNote }: Prop
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, x: 60, scale: 0.9 }}
               transition={{ type: 'spring', stiffness: 500, damping: 34 }}
-              className={`todo glass ${t.done ? 'todo-done' : ''}`}
+              className={`todo glass ${t.done ? 'todo-done' : ''} ${highlightId === t.id ? 'todo-flash' : ''}`}
             >
               <button
                 className="todo-check"

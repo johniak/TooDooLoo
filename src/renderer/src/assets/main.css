@@ -299,6 +299,36 @@ textarea {
   background: var(--glass);
 }
 
+.todo-flash {
+  animation: flash 0.8s ease-in-out 3;
+}
+
+@keyframes flash {
+  50% {
+    box-shadow: 0 0 0 3px rgba(124, 92, 255, 0.8), 0 0 24px rgba(124, 92, 255, 0.5);
+  }
+}
+
+.settings {
+  margin-top: auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 10px 12px;
+  font-size: 13px;
+  color: var(--muted);
+  -webkit-app-region: no-drag;
+}
+
+.settings input {
+  background: var(--glass);
+  border: 1px solid var(--glass-border);
+  border-radius: 8px;
+  padding: 4px 8px;
+  color-scheme: dark;
+}
+
 .confetti {
   position: absolute;
   inset: 0;

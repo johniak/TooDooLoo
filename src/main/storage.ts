@@ -62,6 +62,24 @@ export function deleteTodo(id: string): void {
   saveTodos(loadTodos().filter((t) => t.id !== id))
 }
 
+// --- settings ---
+
+export type Settings = { workStart: string }
+const settingsFile = (): string => path.join(dataDir(), 'settings.json')
+
+export function loadSettings(): Settings {
+  try {
+    return { workStart: '09:00', ...JSON.parse(fs.readFileSync(settingsFile(), 'utf8')) }
+  } catch {
+    return { workStart: '09:00' }
+  }
+}
+
+export function saveSettings(s: Settings): void {
+  ensureDirs()
+  fs.writeFileSync(settingsFile(), JSON.stringify(s))
+}
+
 // --- notes: pliki md z frontmatterem ---
 
 function parseNote(id: string, raw: string): { meta: NoteMeta; body: string } {

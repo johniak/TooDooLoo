@@ -6,14 +6,22 @@ import Notes from './components/Notes'
 
 const WEEKDAYS = ['Nd', 'Pn', 'Wt', 'Śr', 'Cz', 'Pt', 'So']
 
+// dni robocze: 7 wstecz, 5 wprzód; weekendy tylko gdy mają dane
 function dayList(summary: Record<string, DaySummary>): string[] {
   const dates = new Set(Object.keys(summary))
-  const d = new Date()
-  d.setDate(d.getDate() - 7)
-  for (let i = 0; i < 15; i++) {
-    dates.add(todayStr(d))
-    d.setDate(d.getDate() + 1)
+  dates.add(todayStr())
+  const addWorkdays = (dir: 1 | -1, count: number): void => {
+    const d = new Date()
+    for (let n = 0; n < count; ) {
+      d.setDate(d.getDate() + dir)
+      if (d.getDay() !== 0 && d.getDay() !== 6) {
+        dates.add(todayStr(d))
+        n++
+      }
+    }
   }
+  addWorkdays(-1, 7)
+  addWorkdays(1, 5)
   return [...dates].sort().reverse()
 }
 
@@ -31,6 +39,18 @@ export default function App(): React.JSX.Element {
   const [todos, setTodos] = useState<Todo[]>([])
   const [notes, setNotes] = useState<NoteMeta[]>([])
   const [openNoteId, setOpenNoteId] = useState<string | null>(null)
+  const [highlightId, setHighlightId] = useState<string | null>(null)
+  const [workStart, setWorkStart] = useState('09:00')
+
+  useEffect(() => {
+    window.api.getSettings().then((s) => setWorkStart(s.workStart))
+    return window.api.onOpenTodo(({ id, date }) => {
+      setSelected(date)
+      setOpenNoteId(null)
+      setHighlightId(id)
+      setTimeout(() => setHighlightId(null), 2500)
+    })
+  }, [])
 
   const reload = useCallback(async () => {
     const [s, t, n] = await Promise.all([
@@ -79,6 +99,17 @@ export default function App(): React.JSX.Element {
             )
           })}
         </div>
+        <label className="settings">
+          Start pracy
+          <input
+            type="time"
+            value={workStart}
+            onChange={(e) => {
+              setWorkStart(e.target.value)
+              window.api.setSettings({ workStart: e.target.value })
+            }}
+          />
+        </label>
       </aside>
       <main className="panel">
         <AnimatePresence mode="wait">
@@ -97,6 +128,7 @@ export default function App(): React.JSX.Element {
               notes={notes}
               onChange={reload}
               onOpenNote={setOpenNoteId}
+              highlightId={highlightId}
             />
             <Notes
               date={selected}

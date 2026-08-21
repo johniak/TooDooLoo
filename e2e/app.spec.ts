@@ -66,6 +66,7 @@ test('notatki: tworzenie, edycja md z podglądem, podstrona, widok globalny', as
   await expect(page.locator('.note-preview strong')).toHaveText('v1')
 
   await page.getByRole('button', { name: '＋ podstrona' }).click()
+  await expect(page.locator('.note-title')).toHaveValue('Podstrona') // edytor przełączył się na podstronę
   await page.locator('.note-title').fill('Szczegóły')
   await page.getByRole('button', { name: '← Wróć' }).click()
   await expect(page.locator('.note-chip', { hasText: 'Szczegóły' })).toBeVisible()
@@ -96,6 +97,42 @@ test('link z todosa do notatki otwiera notatkę', async () => {
   await expect(todo.locator('.todo-note-link')).toContainText('Specyfikacja')
   await todo.locator('.todo-note-link').click()
   await expect(page.locator('.note-title')).toHaveValue('Specyfikacja')
+  await app.close()
+})
+
+test('sidebar pomija weekendy bez danych', async () => {
+  const { app, page } = await launch()
+  await expect(page.locator('.day').first()).toBeVisible()
+  expect(await page.locator('.day-label', { hasText: /^(So|Nd) / }).count()).toBe(0)
+  await app.close()
+})
+
+test('godzina startu pracy jest konfigurowalna i zapisywana', async () => {
+  const { app, page, dataDir } = await launch()
+  await page.locator('.settings input').fill('07:30')
+  await expect
+    .poll(() => {
+      try {
+        return JSON.parse(fs.readFileSync(path.join(dataDir, 'settings.json'), 'utf8')).workStart
+      } catch {
+        return ''
+      }
+    })
+    .toBe('07:30')
+  await app.close()
+})
+
+test('open-todo (klik w powiadomienie) przełącza dzień i podświetla todosa', async () => {
+  const { app, page } = await launch({ seedTodos: [{ text: 'Ważny task', date: daysAgo(0) }] })
+  await page.locator('.day').first().click() // przejdź na inny dzień
+  await expect(page.locator('.day-active .day-label')).not.toHaveText('Dzisiaj')
+
+  await app.evaluate(({ BrowserWindow }, payload) => {
+    BrowserWindow.getAllWindows()[0].webContents.send('open-todo', payload)
+  }, { id: 'seed-0', date: daysAgo(0) })
+
+  await expect(page.locator('.day-active .day-label')).toHaveText('Dzisiaj')
+  await expect(page.locator('.todo-flash')).toContainText('Ważny task')
   await app.close()
 })
 

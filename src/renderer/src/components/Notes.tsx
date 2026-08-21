@@ -17,11 +17,13 @@ function Editor({ id, notes, onOpen, onChange }: Omit<Props, 'date' | 'openNoteI
   const [preview, setPreview] = useState(false)
   const [loaded, setLoaded] = useState(false)
   const saveTimer = useRef<ReturnType<typeof setTimeout>>(undefined)
+  const pending = useRef<{ title?: string; body?: string }>({})
   const note = notes.find((n) => n.id === id)
   const children = notes.filter((n) => n.parentId === id)
 
   useEffect(() => {
     setLoaded(false)
+    setPreview(false)
     window.api.getNote(id).then((n) => {
       if (n) {
         setTitle(n.meta.title)
@@ -29,12 +31,23 @@ function Editor({ id, notes, onOpen, onChange }: Omit<Props, 'date' | 'openNoteI
         setLoaded(true)
       }
     })
+    return () => {
+      // flush niedokończonego zapisu przy zmianie notatki
+      clearTimeout(saveTimer.current)
+      const p = pending.current
+      pending.current = {}
+      if (Object.keys(p).length) window.api.saveNote(id, p).then(onChange)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id])
 
   const save = (patch: { title?: string; body?: string }): void => {
+    Object.assign(pending.current, patch)
     clearTimeout(saveTimer.current)
     saveTimer.current = setTimeout(async () => {
-      await window.api.saveNote(id, patch)
+      const p = pending.current
+      pending.current = {}
+      await window.api.saveNote(id, p)
       onChange()
     }, 300)
   }
