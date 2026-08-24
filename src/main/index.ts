@@ -51,7 +51,10 @@ function createWindow(): void {
 
 function registerIpc(): void {
   ipcMain.handle('todos:list', (_e, date: string) =>
-    storage.loadTodos().filter((t) => t.date === date)
+    // todosy dnia + „duchy": todosy, które przeszły przez ten dzień rolloverem (t.date !== date)
+    storage.loadTodos().filter(
+      (t) => t.date === date || (t.rolledFrom && t.rolledFrom <= date && date < t.date)
+    )
   )
   ipcMain.handle('todos:add', (_e, input) => storage.addTodo(input))
   ipcMain.handle('todos:update', (_e, id: string, patch) => storage.updateTodo(id, patch))

@@ -124,6 +124,27 @@ export default function Todos({
           {todos.map((t) => {
             const u = URGENCIES.find((x) => x.value === t.urgency)!
             const pickerOpen = pickerFor?.id === t.id
+            // duch: todos przeszedł przez ten dzień rolloverem — pokazujemy ślad, edycja na dniu docelowym
+            if (t.date !== date) {
+              return (
+                <motion.li
+                  key={t.id}
+                  layout
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="todo card todo-ghost"
+                >
+                  <span className="todo-ghost-mark" style={{ color: u.color }}>
+                    ○
+                  </span>
+                  <span className="todo-text">{t.text}</span>
+                  <span className="todo-rolled" title={`Przeniesione na ${t.date}`}>
+                    ↻ {dayLabel(t.date)}
+                  </span>
+                </motion.li>
+              )
+            }
             return (
               <motion.li
                 key={t.id}

@@ -2,6 +2,16 @@ import { test, expect } from '@playwright/test'
 import fs from 'fs'
 import path from 'path'
 import { launch, daysAgo } from './helpers'
+import { dayLabel } from '../src/shared/core'
+
+// ostatni dzień roboczy przed dzisiaj — weekendy bez danych nie są widoczne w sidebarze
+const prevWorkday = (): string => {
+  for (let i = 1; ; i++) {
+    const d = new Date()
+    d.setDate(d.getDate() - i)
+    if (d.getDay() !== 0 && d.getDay() !== 6) return daysAgo(i)
+  }
+}
 
 test('appka startuje i pokazuje dzisiejszy dzień', async () => {
   const { app, page } = await launch()
@@ -57,6 +67,21 @@ test('rollover: nieodznaczony todos z wczoraj przechodzi na dziś', async () => 
     `Niezrobione od ${daysAgo(1)}`
   )
   await expect(page.locator('.todo', { hasText: 'Zrobiony wczoraj' })).toHaveCount(0)
+  await app.close()
+})
+
+test('rollover: w poprzednim dniu zostaje duch przeniesionego todosa', async () => {
+  const origin = prevWorkday()
+  const { app, page } = await launch({ seedTodos: [{ text: 'Uciekinier', date: origin }] })
+  // po rolloverze todos jest dziś
+  await expect(page.locator('.todo', { hasText: 'Uciekinier' })).toBeVisible()
+
+  await page.locator('.day', { hasText: dayLabel(origin) }).click()
+  const ghost = page.locator('.todo-ghost', { hasText: 'Uciekinier' })
+  await expect(ghost).toBeVisible()
+  await expect(ghost.locator('.todo-rolled')).toContainText('↻ Dzisiaj')
+  // duch nie ma checkboxa — nieedytowalny ślad
+  await expect(ghost.locator('.todo-check')).toHaveCount(0)
   await app.close()
 })
 

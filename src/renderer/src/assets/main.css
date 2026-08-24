@@ -510,6 +510,21 @@ textarea {
   white-space: nowrap;
 }
 
+/* duch todosa, który przeszedł przez ten dzień rolloverem */
+.todo-ghost {
+  opacity: 0.55;
+}
+
+.todo-ghost .todo-text {
+  color: var(--muted);
+}
+
+.todo-ghost-mark {
+  width: 26px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
 /* znacznik przeturlanego todosa — żar niedokończenia */
 .todo-rolled {
   font-size: 12px;
