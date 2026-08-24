@@ -510,6 +510,18 @@ textarea {
   white-space: nowrap;
 }
 
+/* znacznik przeturlanego todosa — żar niedokończenia */
+.todo-rolled {
+  font-size: 12px;
+  color: var(--ember);
+  background: rgba(255, 120, 71, 0.1);
+  border: 1px solid rgba(255, 120, 71, 0.25);
+  padding: 3px 9px;
+  border-radius: 999px;
+  white-space: nowrap;
+  cursor: default;
+}
+
 .picker {
   position: absolute;
   right: var(--card-pad);

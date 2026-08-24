@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Todo, NoteMeta, Urgency, URGENCIES } from '../../../shared/core'
+import { Todo, NoteMeta, Urgency, URGENCIES, dayLabel } from '../../../shared/core'
 
 const hostname = (u: string): string => {
   try {
@@ -144,6 +144,11 @@ export default function Todos({
                   {burstId === t.id && <Sparks />}
                 </button>
                 <span className="todo-text">{t.text}</span>
+                {t.rolledFrom && (
+                  <span className="todo-rolled" title={`Niezrobione od ${t.rolledFrom}`}>
+                    ↻ {dayLabel(t.rolledFrom)}
+                  </span>
+                )}
                 {t.url && (
                   <button
                     className="todo-note-link todo-url"

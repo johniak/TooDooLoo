@@ -12,7 +12,9 @@ const base = (over: Partial<Todo>): Todo => ({
 })
 
 test('dueReminders: interwały wg pilności', () => {
-  const now = new Date(2026, 7, 21, 12, 0)
+  // dzisiaj w południe — todosy z base() mają dzisiejszą datę
+  const now = new Date()
+  now.setHours(12, 0, 0, 0)
   const todos = [
     base({ id: 'a', urgency: 'immediate' }),
     base({ id: 'b', urgency: 'high' }),

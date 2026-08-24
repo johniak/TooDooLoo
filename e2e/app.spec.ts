@@ -48,7 +48,14 @@ test('rollover: nieodznaczony todos z wczoraj przechodzi na dziś', async () => 
     ]
   })
   await expect(page.locator('.day-active .day-label')).toHaveText('Dzisiaj')
-  await expect(page.locator('.todo', { hasText: 'Zaległy task' })).toBeVisible()
+  const rolled = page.locator('.todo', { hasText: 'Zaległy task' })
+  await expect(rolled).toBeVisible()
+  // widać, z którego dnia todos się przeturlał
+  await expect(rolled.locator('.todo-rolled')).toContainText('↻')
+  await expect(rolled.locator('.todo-rolled')).toHaveAttribute(
+    'title',
+    `Niezrobione od ${daysAgo(1)}`
+  )
   await expect(page.locator('.todo', { hasText: 'Zrobiony wczoraj' })).toHaveCount(0)
   await app.close()
 })

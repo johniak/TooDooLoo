@@ -8,6 +8,7 @@ export type Todo = {
   urgency: Urgency
   noteId?: string
   url?: string // link http(s) podpięty do todosa
+  rolledFrom?: string // YYYY-MM-DD — pierwotny dzień, z którego todos się przeturlał
   createdAt: string
 }
 

@@ -43,6 +43,7 @@ export function rollover(): void {
   let changed = false
   for (const t of todos) {
     if (!t.done && t.date < today) {
+      t.rolledFrom ??= t.date // pamiętamy najstarszy dzień, kolejne rollovery go nie nadpisują
       t.date = today
       changed = true
     }
