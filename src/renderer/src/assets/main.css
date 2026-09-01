@@ -215,56 +215,157 @@ textarea {
 
 /* --- ekran ustawień --- */
 .settings-view {
-  max-width: 620px;
+  max-width: 580px;
+  display: flex;
+  flex-direction: column;
+}
+
+.settings-eyebrow {
+  font-family: var(--display);
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--muted);
+  margin: 0 0 var(--s2);
+  padding-left: var(--card-pad); /* licuje z tekstem karty */
 }
 
 .settings-card {
   display: flex;
   flex-direction: column;
-  gap: var(--s3);
+  padding: var(--s1) var(--card-pad);
+  border: 1px solid var(--line);
 }
 
-.settings-section {
-  font-family: var(--display);
-  font-size: 12px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  color: var(--muted);
-  margin-top: var(--s2);
-}
-
-.settings-card .settings-section:first-child {
-  margin-top: 0;
+.settings-card + .settings-eyebrow {
+  margin-top: var(--s5);
 }
 
 .settings-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: var(--s3);
+  gap: var(--s4);
+  padding: var(--s3) 0;
 }
 
-.settings-row small {
+.settings-row + .settings-row {
+  border-top: 1px solid var(--line);
+}
+
+.settings-copy {
+  font-size: 15px;
+  font-weight: 500;
+}
+
+.settings-copy small {
   display: block;
-  margin-top: 2px;
-  font-size: 12px;
+  margin-top: 4px;
+  max-width: 40ch;
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.45;
   color: var(--muted);
 }
 
 .settings-row input[type='time'] {
-  background: var(--surface);
+  font-family: var(--display);
+  font-size: 19px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  background: var(--bg);
   border: 1px solid var(--line);
-  border-radius: 8px;
-  padding: 6px var(--s1);
+  border-radius: 10px;
+  padding: 8px 12px;
   color: var(--text);
   color-scheme: dark;
 }
 
-.settings-row input[type='checkbox'] {
-  width: 16px;
-  height: 16px;
-  accent-color: var(--ember);
+.settings-row input[type='time']::-webkit-calendar-picker-indicator {
+  opacity: 0.35;
+}
+
+/* toggle: emberowy przełącznik zamiast gołego checkboxa */
+.toggle {
+  appearance: none;
+  flex-shrink: 0;
+  width: 44px;
+  height: 24px;
+  border-radius: 999px;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  position: relative;
+  cursor: pointer;
+  transition:
+    background 0.2s,
+    border-color 0.2s;
+}
+
+.toggle::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--muted);
+  transition:
+    transform 0.2s,
+    background 0.2s,
+    box-shadow 0.2s;
+}
+
+.toggle:checked {
+  background: rgba(255, 120, 71, 0.22);
+  border-color: var(--ember);
+}
+
+.toggle:checked::after {
+  transform: translateX(20px);
+  background: var(--ember);
+  box-shadow: 0 0 10px rgba(255, 120, 71, 0.55);
+}
+
+/* podgląd lontu dnia: świt → żar */
+.fuse-preview {
+  display: flex;
+  align-items: center;
+  gap: var(--s1);
+  padding: 2px 0 var(--s1);
+}
+
+.fuse-preview-track {
+  flex: 1;
+  height: 2px;
+  border-radius: 1px;
+  background: linear-gradient(90deg, #86a8c8, var(--ember));
+  opacity: 0.75;
+}
+
+.fuse-preview-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.fuse-preview-dawn {
+  background: #86a8c8;
+  box-shadow: 0 0 8px rgba(134, 168, 200, 0.7);
+}
+
+.fuse-preview-ember {
+  background: var(--ember);
+  box-shadow: 0 0 8px rgba(255, 120, 71, 0.7);
+}
+
+.fuse-preview-len {
+  margin-left: var(--s1);
+  font-size: 12px;
+  color: var(--muted);
+  white-space: nowrap;
 }
 
 /* --- panel --- */
