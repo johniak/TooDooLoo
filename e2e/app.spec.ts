@@ -36,6 +36,22 @@ test('dodawanie, odznaczanie i usuwanie todosa', async () => {
   await app.close()
 })
 
+test('todosy mają krótkie #id: backfill dla starych, kolejny numer dla nowych', async () => {
+  const { app, page, dataDir } = await launch({
+    seedTodos: [{ text: 'Stary', date: daysAgo(0) }] // seed bez num → backfill przy starcie
+  })
+  await expect(page.locator('.todo', { hasText: 'Stary' }).locator('.todo-num')).toHaveText('#1')
+
+  await page.getByPlaceholder('Co jest do zrobienia?').fill('Nowy')
+  await page.getByRole('button', { name: 'Dodaj', exact: true }).click()
+  await expect(page.locator('.todo', { hasText: 'Nowy' }).locator('.todo-num')).toHaveText('#2')
+  const nums = JSON.parse(fs.readFileSync(path.join(dataDir, 'todos.json'), 'utf8')).map(
+    (t: { num: number }) => t.num
+  )
+  expect(nums.sort()).toEqual([1, 2])
+  await app.close()
+})
+
 test('zmiana pilności segmented controlem na todosie', async () => {
   const { app, page, dataDir } = await launch({
     seedTodos: [{ text: 'Raport', date: daysAgo(0) }]

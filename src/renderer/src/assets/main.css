@@ -1220,6 +1220,14 @@ textarea {
     0 0 24px rgba(255, 120, 71, 0.12);
 }
 
+.todo-num {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px;
+  color: var(--muted);
+  opacity: 0.8;
+  flex-shrink: 0;
+}
+
 /* wybór koloru tożsamości */
 .color-dot {
   display: inline-block;

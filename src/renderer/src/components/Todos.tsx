@@ -165,6 +165,7 @@ export default function Todos({
                   <span className="todo-ghost-mark" style={{ color: u.color }}>
                     ○
                   </span>
+                  {t.num != null && <span className="todo-num">#{t.num}</span>}
                   <span className="todo-text">{t.text}</span>
                   <span className="todo-rolled" title={`Przeniesione na ${t.date}`}>
                     ↻ {dayLabel(t.date)}
@@ -191,6 +192,7 @@ export default function Todos({
                   {t.done && '✓'}
                   {burstId === t.id && <Sparks />}
                 </button>
+                {t.num != null && <span className="todo-num">#{t.num}</span>}
                 <span className="todo-text">{t.text}</span>
                 {t.rolledFrom && (
                   <span className="todo-rolled" title={`Niezrobione od ${t.rolledFrom}`}>

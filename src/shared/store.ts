@@ -45,11 +45,18 @@ function saveTodos(todos: Todo[]): void {
   fs.writeFileSync(todosFile(), JSON.stringify(todos, null, 2))
 }
 
-/** Nieodznaczone todosy z przeszłości przechodzą na dziś. */
+/** Nieodznaczone todosy z przeszłości przechodzą na dziś. Przy okazji backfill numerków #N. */
 export function rollover(): void {
   const today = todayStr()
   const todos = loadTodos()
   let changed = false
+  let next = Math.max(0, ...todos.map((t) => t.num ?? 0)) + 1
+  for (const t of [...todos].sort((a, b) => a.createdAt.localeCompare(b.createdAt))) {
+    if (t.num == null) {
+      t.num = next++
+      changed = true
+    }
+  }
   for (const t of todos) {
     if (!t.done && t.date < today) {
       t.rolledFrom ??= t.date // pamiętamy najstarszy dzień, kolejne rollovery go nie nadpisują
@@ -61,8 +68,15 @@ export function rollover(): void {
 }
 
 export function addTodo(input: Pick<Todo, 'text' | 'date' | 'urgency'> & { url?: string }): Todo {
-  const todo: Todo = { id: randomUUID(), done: false, createdAt: new Date().toISOString(), ...input }
-  saveTodos([...loadTodos(), todo])
+  const todos = loadTodos()
+  const todo: Todo = {
+    id: randomUUID(),
+    num: Math.max(0, ...todos.map((t) => t.num ?? 0)) + 1,
+    done: false,
+    createdAt: new Date().toISOString(),
+    ...input
+  }
+  saveTodos([...todos, todo])
   return todo
 }
 

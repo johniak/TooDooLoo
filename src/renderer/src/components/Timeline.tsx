@@ -121,7 +121,7 @@ function SessionModal({
     <div className="tl-backdrop" onClick={onClose}>
       <div className="tl-modal card" onClick={(e) => e.stopPropagation()}>
         <h3 className="tl-modal-title" style={{ color: taskColor(todo) }}>
-          {todo.text}
+          {todo.num != null && <span className="todo-num">#{todo.num}</span>} {todo.text}
         </h3>
         <label className="tl-field">
           Start

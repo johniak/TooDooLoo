@@ -18,6 +18,7 @@ Katalog danych: `app.getPath('userData')/data/` (w testach nadpisywany przez env
   type Urgency = 'immediate' | 'high' | 'medium' | 'low' | 'before-work'
   type Todo = {
     id: string          // crypto.randomUUID()
+    num?: number        // krótki numerek #N (rosnący; backfill starych w rollover())
     text: string
     date: string        // 'YYYY-MM-DD' — dzień, do którego należy
     done: boolean

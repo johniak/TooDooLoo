@@ -5,6 +5,7 @@ export type Session = { start: string; end?: string; confirmedUntil?: string }
 
 export type Todo = {
   id: string
+  num?: number // krótki numerek #N, nadawany rosnąco; backfill w rollover()
   text: string
   date: string // YYYY-MM-DD
   done: boolean
