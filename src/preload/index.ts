@@ -9,6 +9,8 @@ export const api = {
   updateTodo: (id: string, patch: Partial<Todo>): Promise<Todo | null> =>
     ipcRenderer.invoke('todos:update', id, patch),
   deleteTodo: (id: string): Promise<void> => ipcRenderer.invoke('todos:delete', id),
+  updateSession: (todoId: string, idx: number, patch: { start?: string; end?: string }): Promise<boolean> =>
+    ipcRenderer.invoke('session:update', todoId, idx, patch),
   startTracking: (id: string): Promise<Todo | null> => ipcRenderer.invoke('tracking:start', id),
   stopTracking: (): Promise<void> => ipcRenderer.invoke('tracking:stop'),
   daysSummary: (): Promise<Record<string, DaySummary>> => ipcRenderer.invoke('days:summary'),

@@ -96,11 +96,14 @@ export function nextCheckpoint(s: Session, workEnd: string): number {
 
 export type TimelineBlock = {
   todoId: string
+  sessionIdx: number // indeks sesji w todo.sessions
   text: string
   date: string // YYYY-MM-DD — kolumna dnia
   startMin: number // minuty od północy
   endMin: number
   running: boolean
+  isStart: boolean // ten kawałek zawiera prawdziwy początek sesji
+  isEnd: boolean // …i prawdziwy koniec (można za nie ciągnąć)
   lane: number // slot w klastrze nakładających się bloków
   lanes: number // liczba slotów w klastrze
 }
@@ -136,21 +139,24 @@ export function weekBlocks(todos: Todo[], dates: string[], now: number = Date.no
     const dayEnd = dayStart + 24 * 3600_000
     const day: TimelineBlock[] = []
     for (const t of todos) {
-      for (const s of t.sessions ?? []) {
+      ;(t.sessions ?? []).forEach((s, sessionIdx) => {
         const from = Math.max(Date.parse(s.start), dayStart)
         const to = Math.min(s.end ? Date.parse(s.end) : now, dayEnd)
-        if (to <= from) continue
+        if (to <= from) return
         day.push({
           todoId: t.id,
+          sessionIdx,
           text: t.text,
           date,
           startMin: (from - dayStart) / 60_000,
           endMin: (to - dayStart) / 60_000,
           running: !s.end && now >= dayStart && now < dayEnd,
+          isStart: from === Date.parse(s.start),
+          isEnd: !!s.end && to === Date.parse(s.end),
           lane: 0,
           lanes: 1
         })
-      }
+      })
     }
     layoutLanes(day)
     all.push(...day)

@@ -1,7 +1,18 @@
-import { useEffect, useMemo, useState } from 'react'
-import { Todo, TimelineBlock, weekBlocks, taskColor, todayStr, fmtDur, WEEKDAYS } from '../../../shared/core'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import {
+  Todo,
+  Session,
+  TimelineBlock,
+  weekBlocks,
+  taskColor,
+  todayStr,
+  fmtDur,
+  WEEKDAYS
+} from '../../../shared/core'
 
 const PX_PER_HOUR = 56
+const GUTTER = 44
+const SNAP_MIN = 5
 
 type Props = {
   workStart: string
@@ -9,7 +20,19 @@ type Props = {
   onOpenTodo: (id: string, date: string) => void
 }
 
+type Drag = {
+  todoId: string
+  idx: number
+  mode: 'move' | 'start' | 'end'
+  originX: number
+  originY: number
+  deltaMin: number
+  dayDelta: number
+  moved: boolean
+}
+
 const hourOf = (t: string): number => Number(t.split(':')[0])
+const p = (n: number): string => String(n).padStart(2, '0')
 
 function weekDates(offset: number): string[] {
   const d = new Date()
@@ -26,15 +49,137 @@ const shortDate = (date: string): string => {
   return `${d}.${m}`
 }
 
+const localDate = (iso: string): string => todayStr(new Date(iso))
+const localTime = (iso: string): string => {
+  const d = new Date(iso)
+  return `${p(d.getHours())}:${p(d.getMinutes())}`
+}
+const toIso = (date: string, time: string): string => {
+  const [y, m, d] = date.split('-').map(Number)
+  const [h, mi] = time.split(':').map(Number)
+  return new Date(y, m - 1, d, h, mi).toISOString()
+}
+
+function SessionModal({
+  todo,
+  idx,
+  onClose,
+  onSaved,
+  onOpenTodo
+}: {
+  todo: Todo
+  idx: number
+  onClose: () => void
+  onSaved: () => void
+  onOpenTodo: (id: string, date: string) => void
+}): React.JSX.Element {
+  const s: Session = todo.sessions![idx]
+  const running = !s.end
+  const [startDate, setStartDate] = useState(localDate(s.start))
+  const [startTime, setStartTime] = useState(localTime(s.start))
+  const [endDate, setEndDate] = useState(s.end ? localDate(s.end) : '')
+  const [endTime, setEndTime] = useState(s.end ? localTime(s.end) : '')
+
+  const startIso = (): string => toIso(startDate, startTime)
+  const endIso = (): string => toIso(endDate, endTime)
+  const durMin = running
+    ? Math.round((Date.now() - Date.parse(startIso())) / 60_000)
+    : Math.round((Date.parse(endIso()) - Date.parse(startIso())) / 60_000)
+
+  const save = async (): Promise<void> => {
+    const ok = await window.api.updateSession(
+      todo.id,
+      idx,
+      running ? { start: startIso() } : { start: startIso(), end: endIso() }
+    )
+    if (ok) {
+      onSaved()
+      onClose()
+    }
+  }
+
+  return (
+    <div className="tl-backdrop" onClick={onClose}>
+      <div className="tl-modal card" onClick={(e) => e.stopPropagation()}>
+        <h3 className="tl-modal-title" style={{ color: taskColor(todo.id) }}>
+          {todo.text}
+        </h3>
+        <label className="tl-field">
+          Start
+          <span className="tl-field-inputs">
+            <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
+            <input
+              className="tl-start-time"
+              type="time"
+              value={startTime}
+              onChange={(e) => setStartTime(e.target.value)}
+            />
+          </span>
+        </label>
+        <label className="tl-field">
+          Koniec
+          {running ? (
+            <span className="tl-live">
+              <span className="tl-live-dot" /> w toku
+            </span>
+          ) : (
+            <span className="tl-field-inputs">
+              <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
+              <input
+                className="tl-end-time"
+                type="time"
+                value={endTime}
+                onChange={(e) => setEndTime(e.target.value)}
+              />
+            </span>
+          )}
+        </label>
+        <label className="tl-field">
+          Długość (min)
+          <input
+            className="tl-dur"
+            type="number"
+            min={1}
+            step={5}
+            value={durMin > 0 ? durMin : ''}
+            disabled={running}
+            onChange={(e) => {
+              const min = Number(e.target.value)
+              if (!min) return
+              const end = new Date(Date.parse(startIso()) + min * 60_000)
+              setEndDate(todayStr(end))
+              setEndTime(`${p(end.getHours())}:${p(end.getMinutes())}`)
+            }}
+          />
+        </label>
+        <div className="tl-modal-actions">
+          <button className="tl-modal-link" onClick={() => onOpenTodo(todo.id, todo.date)}>
+            ▤ Pokaż todosa
+          </button>
+          <button onClick={onClose}>Anuluj</button>
+          <button className="btn-primary" onClick={save} disabled={durMin <= 0}>
+            Zapisz
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export default function Timeline({ workStart, workEnd, onOpenTodo }: Props): React.JSX.Element {
   const [todos, setTodos] = useState<Todo[]>([])
   const [offset, setOffset] = useState(0)
+  const [drag, setDrag] = useState<Drag | null>(null)
+  const [editing, setEditing] = useState<{ todoId: string; idx: number } | null>(null)
   const [, setTick] = useState(0)
+  const gridRef = useRef<HTMLDivElement>(null)
+  const suppressClick = useRef(false)
+
+  const load = (): void => {
+    window.api.listAllTodos().then(setTodos)
+  }
 
   useEffect(() => {
-    const load = (): void => {
-      window.api.listAllTodos().then(setTodos)
-    }
     load()
     const i = setInterval(() => setTick((n) => n + 1), 60_000) // linia „teraz" i rosnący blok
     const unsub = window.api.onDataChanged(load)
@@ -45,13 +190,36 @@ export default function Timeline({ workStart, workEnd, onOpenTodo }: Props): Rea
   }, [])
 
   const dates = weekDates(offset)
-  const blocks = useMemo(() => weekBlocks(todos, dates), [todos, offset])
+
+  // podgląd przeciągania: sesja przesunięta lokalnie, zanim commit trafi na dysk
+  const previewTodos = useMemo(() => {
+    if (!drag?.moved) return todos
+    const shift = drag.dayDelta * 86_400_000 + drag.deltaMin * 60_000
+    return todos.map((t) =>
+      t.id !== drag.todoId
+        ? t
+        : {
+            ...t,
+            sessions: t.sessions!.map((s, i) => {
+              if (i !== drag.idx) return s
+              const ns = { ...s }
+              if (drag.mode !== 'end') ns.start = new Date(Date.parse(s.start) + shift).toISOString()
+              if (drag.mode !== 'start' && s.end)
+                ns.end = new Date(
+                  Date.parse(s.end) + (drag.mode === 'move' ? shift : drag.deltaMin * 60_000)
+                ).toISOString()
+              return ns
+            })
+          }
+    )
+  }, [todos, drag])
+
+  const blocks = useMemo(() => weekBlocks(previewTodos, dates), [previewTodos, offset])
   const byDate = (date: string): TimelineBlock[] => blocks.filter((b) => b.date === date)
 
   // weekend tylko gdy ma sesje — jak w sidebarze
   const visible = dates.filter((d, i) => i < 5 || byDate(d).length > 0)
 
-  // oś godzin: dzień pracy z marginesem, rozciągany przez sesje poza nim
   const startHour = Math.max(
     0,
     Math.min(hourOf(workStart) - 1, ...blocks.map((b) => Math.floor(b.startMin / 60)))
@@ -68,6 +236,21 @@ export default function Timeline({ workStart, workEnd, onOpenTodo }: Props): Rea
   const now = new Date()
   const nowMin = now.getHours() * 60 + now.getMinutes()
 
+  const commitDrag = async (d: Drag): Promise<void> => {
+    const t = todos.find((x) => x.id === d.todoId)
+    const s = t?.sessions?.[d.idx]
+    if (!s) return
+    const shift = d.dayDelta * 86_400_000 + d.deltaMin * 60_000
+    const patch: { start?: string; end?: string } = {}
+    if (d.mode !== 'end') patch.start = new Date(Date.parse(s.start) + shift).toISOString()
+    if (d.mode !== 'start' && s.end)
+      patch.end = new Date(
+        Date.parse(s.end) + (d.mode === 'move' ? shift : d.deltaMin * 60_000)
+      ).toISOString()
+    await window.api.updateSession(d.todoId, d.idx, patch)
+    load()
+  }
+
   return (
     <section className="timeline" aria-label="Oś czasu">
       <div className="tl-head">
@@ -81,11 +264,11 @@ export default function Timeline({ workStart, workEnd, onOpenTodo }: Props): Rea
         </span>
         {totalSec >= 60 && <span className="tl-total">{fmtDur(totalSec)}</span>}
       </div>
-      <div className="tl-grid">
+      <div className="tl-grid" ref={gridRef}>
         <div className="tl-gutter" style={{ height: colHeight, marginTop: 28 }}>
           {[...Array(endHour - startHour + 1)].map((_, i) => (
             <span key={i} className="tl-hour" style={{ top: i * PX_PER_HOUR }}>
-              {String(startHour + i).padStart(2, '0')}:00
+              {p(startHour + i)}:00
             </span>
           ))}
         </div>
@@ -101,6 +284,9 @@ export default function Timeline({ workStart, workEnd, onOpenTodo }: Props): Rea
                 className="tl-col-body"
                 style={{ height: colHeight, backgroundSize: `100% ${PX_PER_HOUR}px` }}
               >
+                {date === today && nowMin >= startHour * 60 && nowMin <= endHour * 60 && (
+                  <div className="tl-now" style={{ top: toPx(nowMin) }} />
+                )}
                 {byDate(date).map((b, i) => {
                   const color = taskColor(b.todoId)
                   const h = toPx(b.endMin) - toPx(b.startMin)
@@ -117,13 +303,62 @@ export default function Timeline({ workStart, workEnd, onOpenTodo }: Props): Rea
                         background: `${color}2E`,
                         borderLeftColor: color
                       }}
+                      onPointerDown={(e) => {
+                        const rect = e.currentTarget.getBoundingClientRect()
+                        let mode: Drag['mode'] =
+                          e.clientY - rect.top < 7 && b.isStart
+                            ? 'start'
+                            : rect.bottom - e.clientY < 7 && b.isEnd
+                              ? 'end'
+                              : 'move'
+                        if (b.running && mode !== 'start') {
+                          if (e.clientY - rect.top >= 7) return // otwartą sesję ciągniemy tylko za start
+                          mode = 'start'
+                        }
+                        e.currentTarget.setPointerCapture(e.pointerId)
+                        setDrag({
+                          todoId: b.todoId,
+                          idx: b.sessionIdx,
+                          mode,
+                          originX: e.clientX,
+                          originY: e.clientY,
+                          deltaMin: 0,
+                          dayDelta: 0,
+                          moved: false
+                        })
+                      }}
+                      onPointerMove={(e) => {
+                        if (!drag) return
+                        const dy = e.clientY - drag.originY
+                        const dx = e.clientX - drag.originX
+                        const grid = gridRef.current
+                        const colW = grid ? (grid.clientWidth - GUTTER) / visible.length : 1
+                        setDrag({
+                          ...drag,
+                          deltaMin: Math.round((dy / PX_PER_HOUR) * 60 / SNAP_MIN) * SNAP_MIN,
+                          dayDelta: drag.mode === 'move' ? Math.round(dx / colW) : 0,
+                          moved: drag.moved || Math.abs(dy) > 3 || Math.abs(dx) > 3
+                        })
+                      }}
+                      onPointerUp={async () => {
+                        if (!drag) return
+                        if (drag.moved) {
+                          suppressClick.current = true
+                          await commitDrag(drag)
+                        }
+                        setDrag(null)
+                      }}
                       onClick={() => {
-                        const t = todos.find((x) => x.id === b.todoId)
-                        if (t) onOpenTodo(t.id, t.date)
+                        if (suppressClick.current) {
+                          suppressClick.current = false
+                          return
+                        }
+                        setEditing({ todoId: b.todoId, idx: b.sessionIdx })
                       }}
                     >
                       {h >= 24 && (
                         <span className="tl-block-label" style={{ color }}>
+                          {b.running && <span className="tl-live-dot" />}
                           <span className="tl-block-text">{b.text}</span>
                           <span className="tl-block-dur">{fmtDur((b.endMin - b.startMin) * 60)}</span>
                         </span>
@@ -131,14 +366,25 @@ export default function Timeline({ workStart, workEnd, onOpenTodo }: Props): Rea
                     </button>
                   )
                 })}
-                {date === today && nowMin >= startHour * 60 && nowMin <= endHour * 60 && (
-                  <div className="tl-now" style={{ top: toPx(nowMin) }} />
-                )}
               </div>
             </div>
           )
         })}
       </div>
+      {editing &&
+        (() => {
+          const t = todos.find((x) => x.id === editing.todoId)
+          if (!t?.sessions?.[editing.idx]) return null
+          return (
+            <SessionModal
+              todo={t}
+              idx={editing.idx}
+              onClose={() => setEditing(null)}
+              onSaved={load}
+              onOpenTodo={onOpenTodo}
+            />
+          )
+        })()}
     </section>
   )
 }

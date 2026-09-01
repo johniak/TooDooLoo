@@ -308,8 +308,35 @@ textarea {
   filter: brightness(1.35);
 }
 
+/* sesja w toku: kolor tożsamości zostaje, „życie" sygnalizuje pulsująca kropka;
+   dolne rogi proste — blok kończy się równo na linii „teraz" */
 .tl-block-running {
-  box-shadow: 0 0 12px rgba(255, 120, 71, 0.35);
+  border-radius: 6px 6px 0 0;
+  box-shadow: 0 0 10px rgba(255, 120, 71, 0.18);
+}
+
+.tl-live-dot {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--ember);
+  box-shadow: 0 0 8px rgba(255, 120, 71, 0.9);
+  flex-shrink: 0;
+  align-self: center;
+  animation: tl-pulse 1.6s ease-in-out infinite;
+}
+
+@keyframes tl-pulse {
+  50% {
+    opacity: 0.35;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tl-live-dot {
+    animation: none;
+  }
 }
 
 .tl-block-label {
@@ -334,6 +361,7 @@ textarea {
   flex-shrink: 0;
 }
 
+/* linia „teraz": nad blokami, bez kropki — styk z blokiem sesji ma czytać się jako jedna linia */
 .tl-now {
   position: absolute;
   left: 0;
@@ -342,17 +370,94 @@ textarea {
   background: var(--ember);
   box-shadow: 0 0 8px rgba(255, 120, 71, 0.7);
   pointer-events: none;
+  z-index: 3;
 }
 
-.tl-now::before {
-  content: '';
-  position: absolute;
-  left: -3px;
-  top: -2px;
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: var(--ember);
+/* modal edycji sesji */
+.tl-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(10, 7, 4, 0.6);
+}
+
+.tl-modal {
+  width: 330px;
+  padding: var(--s3) var(--card-pad);
+  border: 1px solid var(--line);
+  display: flex;
+  flex-direction: column;
+  gap: var(--s2);
+}
+
+.tl-modal-title {
+  font-family: var(--display);
+  font-size: 17px;
+  font-weight: 700;
+  margin-bottom: var(--s1);
+}
+
+.tl-field {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s2);
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.tl-field-inputs {
+  display: flex;
+  gap: 6px;
+}
+
+.tl-field input {
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 5px 8px;
+  color: var(--text);
+  color-scheme: dark;
+  font-size: 13px;
+}
+
+.tl-field input[type='number'] {
+  width: 76px;
+}
+
+.tl-live {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--ember);
+}
+
+.tl-modal-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--s1);
+  margin-top: var(--s1);
+}
+
+.tl-modal-actions button {
+  padding: 7px 12px;
+  border-radius: 9px;
+  border: 1px solid var(--line);
+  color: var(--text);
+}
+
+.tl-modal-actions .btn-primary {
+  border-color: transparent;
+}
+
+.tl-modal-link {
+  margin-right: auto;
+  border: none !important;
+  color: var(--dawn) !important;
+  padding-left: 0 !important;
 }
 
 .day-note {

@@ -98,6 +98,27 @@ export function stopTracking(endIso: string = new Date().toISOString()): void {
   if (changed) saveTodos(todos)
 }
 
+/** Edycja sesji z timeline'u. Koniec otwartej sesji jest nietykalny; start zawsze przed końcem. */
+export function updateSession(
+  todoId: string,
+  idx: number,
+  patch: { start?: string; end?: string }
+): boolean {
+  const todos = loadTodos()
+  const s = todos.find((t) => t.id === todoId)?.sessions?.[idx]
+  if (!s) return false
+  const open = !s.end
+  if (open && patch.end) return false
+  const start = patch.start ?? s.start
+  const end = open ? undefined : (patch.end ?? s.end)
+  if (end && Date.parse(start) >= Date.parse(end)) return false
+  if (open && Date.parse(start) > Date.now()) return false
+  s.start = start
+  if (end) s.end = end
+  saveTodos(todos)
+  return true
+}
+
 /** „Tak, pracuję": wymazuje pauzę checkpointu — sesja biegnie dalej bez szwu. */
 export function resumeSession(id: string, checkpointIso: string): void {
   const todos = loadTodos()

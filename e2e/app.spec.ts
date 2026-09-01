@@ -182,7 +182,7 @@ test('oś czasu: bloki sesji, cięcie przez północ, nakładki w slotach, klik 
     const n = new Date(y, m - 1, d + 1)
     return `${n.getFullYear()}-${String(n.getMonth() + 1).padStart(2, '0')}-${String(n.getDate()).padStart(2, '0')}`
   })()
-  const { app, page } = await launch({
+  const { app, page, dataDir } = await launch({
     seedTodos: [
       { text: 'Nocny marek', date: daysAgo(0), sessions: [{ start: iso(spanDay, 22), end: iso(nextDay, 1, 30) }] },
       { text: 'Ranny A', date: daysAgo(0), sessions: [{ start: iso(daysAgo(0), 10), end: iso(daysAgo(0), 11) }] },
@@ -201,9 +201,49 @@ test('oś czasu: bloki sesji, cięcie przez północ, nakładki w slotach, klik 
   expect(a.x).not.toBe(b.x)
   expect(Math.abs(a.width - b.width)).toBeLessThan(2)
 
-  // klik w blok prowadzi do todosa
+  // klik w blok otwiera modal edycji sesji; zmiana startu zapisuje się
   await page.locator('.tl-block[title*="Ranny A"]').click()
+  await expect(page.locator('.tl-modal')).toBeVisible()
+  await page.locator('.tl-start-time').fill('09:30')
+  await page.getByRole('button', { name: 'Zapisz' }).click()
+  await expect(page.locator('.tl-modal')).toHaveCount(0)
+  await expect
+    .poll(() => {
+      const todos = JSON.parse(fs.readFileSync(path.join(dataDir, 'todos.json'), 'utf8'))
+      return todos.find((t: { text: string }) => t.text === 'Ranny A').sessions[0].start
+    })
+    .toBe(iso(daysAgo(0), 9, 30))
+  // link w modalu prowadzi do todosa
+  await page.locator('.tl-block[title*="Ranny A"]').click()
+  await page.getByRole('button', { name: '▤ Pokaż todosa' }).click()
   await expect(page.locator('.todo-flash')).toContainText('Ranny A')
+  await app.close()
+})
+
+test('oś czasu: przeciągnięcie bloku przesuwa sesję o godzinę (snap 5 min)', async () => {
+  const iso = (h: number, m = 0): string => {
+    const [y, mo, d] = daysAgo(0).split('-').map(Number)
+    return new Date(y, mo - 1, d, h, m).toISOString()
+  }
+  const { app, page, dataDir } = await launch({
+    seedTodos: [
+      { text: 'Przesuwany', date: daysAgo(0), sessions: [{ start: iso(10), end: iso(11) }] }
+    ]
+  })
+  await page.locator('.timeline-link').click()
+  const box = (await page.locator('.tl-block[title*="Przesuwany"]').boundingBox())!
+  const cx = box.x + box.width / 2
+  const cy = box.y + box.height / 2
+  await page.mouse.move(cx, cy)
+  await page.mouse.down()
+  await page.mouse.move(cx, cy + 56, { steps: 6 }) // 56px = 1h
+  await page.mouse.up()
+  await expect
+    .poll(() => {
+      const todos = JSON.parse(fs.readFileSync(path.join(dataDir, 'todos.json'), 'utf8'))
+      return todos[0].sessions[0]
+    })
+    .toMatchObject({ start: iso(11), end: iso(12) })
   await app.close()
 })
 
