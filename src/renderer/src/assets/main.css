@@ -184,10 +184,17 @@ textarea {
 }
 
 .notes-link {
+  margin-top: auto; /* spycha stopkę sidebara na dół */
   width: 100%;
   border-top: 1px solid var(--line);
-  border-radius: 0 0 10px 10px;
+  border-radius: 0;
   padding-top: var(--s2);
+  -webkit-app-region: no-drag;
+}
+
+.settings-link {
+  width: 100%;
+  border-radius: 0 0 10px 10px;
   -webkit-app-region: no-drag;
 }
 
@@ -206,34 +213,57 @@ textarea {
   min-height: 140px;
 }
 
-.settings {
-  margin-top: auto;
+/* --- ekran ustawień --- */
+.settings-view {
+  max-width: 620px;
+}
+
+.settings-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s3);
+}
+
+.settings-section {
+  font-family: var(--display);
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--muted);
+  margin-top: var(--s2);
+}
+
+.settings-card .settings-section:first-child {
+  margin-top: 0;
+}
+
+.settings-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: var(--s1);
-  padding: var(--s1) var(--s2);
-  font-size: 13px;
-  color: var(--muted);
-  -webkit-app-region: no-drag;
+  gap: var(--s3);
 }
 
-.settings input {
+.settings-row small {
+  display: block;
+  margin-top: 2px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.settings-row input[type='time'] {
   background: var(--surface);
   border: 1px solid var(--line);
   border-radius: 8px;
-  padding: 4px var(--s1);
+  padding: 6px var(--s1);
+  color: var(--text);
   color-scheme: dark;
 }
 
-.settings ~ .settings {
-  margin-top: 0; /* tylko pierwszy .settings spycha blok ustawień na dół */
-}
-
-.settings-dock input {
-  width: 15px;
-  height: 15px;
-  padding: 0;
+.settings-row input[type='checkbox'] {
+  width: 16px;
+  height: 16px;
   accent-color: var(--ember);
 }
 

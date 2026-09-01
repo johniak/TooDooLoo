@@ -298,6 +298,7 @@ test('sidebar pomija weekendy bez danych', async () => {
 
 test('godzina startu pracy jest konfigurowalna i zapisywana', async () => {
   const { app, page, dataDir } = await launch()
+  await page.locator('.settings-link').click()
   await page.locator('.settings-start input').fill('07:30')
   await page.locator('.settings-end input').fill('16:30')
   await expect
@@ -314,6 +315,7 @@ test('godzina startu pracy jest konfigurowalna i zapisywana', async () => {
 
 test('ukrycie w Docku: checkbox chowa ikonę i zapisuje ustawienie', async () => {
   const { app, page, dataDir } = await launch()
+  await page.locator('.settings-link').click()
   await page.locator('.settings-dock input').uncheck()
   await expect
     .poll(() => {

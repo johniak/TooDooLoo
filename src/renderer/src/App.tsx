@@ -4,6 +4,7 @@ import { Todo, NoteMeta, DaySummary, todayStr, dayLabel, secondsOnDay, fmtDur } 
 import Todos from './components/Todos'
 import Notes from './components/Notes'
 import DayNote from './components/DayNote'
+import Settings, { SettingsValues } from './components/Settings'
 
 // dni robocze: 7 wstecz, 5 wprzód; weekendy tylko gdy mają dane
 function dayList(summary: Record<string, DaySummary>): string[] {
@@ -85,7 +86,7 @@ export default function App(): React.JSX.Element {
   const [todos, setTodos] = useState<Todo[]>([])
   const [notes, setNotes] = useState<NoteMeta[]>([])
   const [openNoteId, setOpenNoteId] = useState<string | null>(null)
-  const [view, setView] = useState<'day' | 'notes'>('day')
+  const [view, setView] = useState<'day' | 'notes' | 'settings'>('day')
   const [highlightId, setHighlightId] = useState<string | null>(null)
   const [workStart, setWorkStart] = useState('09:00')
   const [workEnd, setWorkEnd] = useState('17:00')
@@ -170,39 +171,15 @@ export default function App(): React.JSX.Element {
             <span className="day-label">▤ Notatki</span>
             {realNotes.length > 0 && <span className="badge">{realNotes.length}</span>}
           </button>
-          <label className="settings settings-start">
-            Start pracy
-            <input
-              type="time"
-              value={workStart}
-              onChange={(e) => {
-                setWorkStart(e.target.value)
-                window.api.setSettings({ workStart: e.target.value, workEnd, showDock })
-              }}
-            />
-          </label>
-          <label className="settings settings-end">
-            Koniec pracy
-            <input
-              type="time"
-              value={workEnd}
-              onChange={(e) => {
-                setWorkEnd(e.target.value)
-                window.api.setSettings({ workStart, workEnd: e.target.value, showDock })
-              }}
-            />
-          </label>
-          <label className="settings settings-dock">
-            W Docku
-            <input
-              type="checkbox"
-              checked={showDock}
-              onChange={(e) => {
-                setShowDock(e.target.checked)
-                window.api.setSettings({ workStart, workEnd, showDock: e.target.checked })
-              }}
-            />
-          </label>
+          <button
+            className={`day settings-link ${view === 'settings' ? 'day-active' : ''}`}
+            onClick={() => {
+              setView('settings')
+              setOpenNoteId(null)
+            }}
+          >
+            <span className="day-label">⚙ Ustawienia</span>
+          </button>
         </aside>
         <main className="panel">
           <AnimatePresence mode="wait">
@@ -233,12 +210,22 @@ export default function App(): React.JSX.Element {
                   />
                   <DayNote date={selected} />
                 </>
-              ) : (
+              ) : view === 'notes' ? (
                 <Notes
                   notes={realNotes}
                   openNoteId={openNoteId}
                   onOpen={setOpenNoteId}
                   onChange={reload}
+                />
+              ) : (
+                <Settings
+                  values={{ workStart, workEnd, showDock }}
+                  onSave={(s: SettingsValues) => {
+                    setWorkStart(s.workStart)
+                    setWorkEnd(s.workEnd)
+                    setShowDock(s.showDock)
+                    window.api.setSettings(s)
+                  }}
                 />
               )}
             </motion.div>
