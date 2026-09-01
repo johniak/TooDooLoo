@@ -1,11 +1,11 @@
-import { app, shell, BrowserWindow, ipcMain, Tray, Menu, nativeImage } from 'electron'
+import { app, shell, BrowserWindow, ipcMain, Tray, Menu, nativeImage, powerMonitor } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
 import fs from 'fs'
 import * as storage from '../shared/store'
 import { startReminders } from './reminders'
-import { DaySummary, Todo } from '../shared/core'
+import { DaySummary, Todo, trackingSince, fmtClock } from '../shared/core'
 
 // w testach izolujemy też userData (localStorage itd.), nie tylko pliki danych
 if (process.env.TOODOOLOO_DATA_DIR) {
@@ -82,6 +82,23 @@ function createTray(): void {
   tray.on('right-click', () => tray.popUpContextMenu(menu))
 }
 
+// licznik trackingu w pasku menu: ▶ czas bieżącej sesji, tyka tylko gdy coś się liczy
+let trayTick: NodeJS.Timeout | undefined
+
+function updateTray(): void {
+  // ponytail: odczyt pliku co sekundę podczas trackingu — todos.json ma kilka KB, starczy
+  const running = storage.loadTodos().find((t) => trackingSince(t))
+  if (running) {
+    const since = Date.parse(trackingSince(running)!)
+    tray.setTitle(`▶ ${fmtClock((Date.now() - since) / 1000)}`)
+    trayTick ??= setInterval(updateTray, 1000)
+  } else {
+    tray.setTitle('✓')
+    clearInterval(trayTick)
+    trayTick = undefined
+  }
+}
+
 function registerIpc(): void {
   ipcMain.handle('todos:list', (_e, date: string) =>
     // todosy dnia + „duchy": todosy, które przeszły przez ten dzień rolloverem (t.date !== date)
@@ -92,6 +109,15 @@ function registerIpc(): void {
   ipcMain.handle('todos:add', (_e, input) => storage.addTodo(input))
   ipcMain.handle('todos:update', (_e, id: string, patch) => storage.updateTodo(id, patch))
   ipcMain.handle('todos:delete', (_e, id: string) => storage.deleteTodo(id))
+  ipcMain.handle('tracking:start', (_e, id: string) => {
+    const todo = storage.startTracking(id)
+    updateTray()
+    return todo
+  })
+  ipcMain.handle('tracking:stop', () => {
+    storage.stopTracking()
+    updateTray()
+  })
   ipcMain.handle('days:summary', () => {
     const summary: Record<string, DaySummary> = {}
     const day = (d: string): DaySummary =>
@@ -128,6 +154,7 @@ function watchData(): void {
       for (const win of BrowserWindow.getAllWindows()) {
         win.webContents.send('data-changed')
       }
+      updateTray() // tracking mógł ruszyć/stanąć z zewnątrz (MCP)
     }, 200)
   })
 }
@@ -144,8 +171,15 @@ app.whenReady().then(() => {
   startReminders()
   watchData()
   createTray()
+  updateTray()
   applyDock(storage.loadSettings().showDock)
   createWindow()
+
+  // uśpienie laptopa zamyka sesję — inaczej zapomniany timer naliczy noc
+  powerMonitor.on('suspend', () => {
+    storage.stopTracking()
+    updateTray()
+  })
 
   app.on('activate', function () {
     if (BrowserWindow.getAllWindows().length === 0) createWindow()

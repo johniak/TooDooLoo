@@ -95,6 +95,30 @@ server.registerTool(
   }
 )
 
+// --- tracking czasu ---
+
+server.registerTool(
+  'start_tracking',
+  {
+    description:
+      'Startuje timer na todosie (jak w Timematorze). Jedyny timer w systemie — otwarta sesja na innym todosie jest zamykana.',
+    inputSchema: { id: z.string() }
+  },
+  async ({ id }) => {
+    const todo = store.startTracking(id)
+    return todo ? json(todo) : fail(`Nie ma todosa o id ${id} (albo jest zrobiony)`)
+  }
+)
+
+server.registerTool(
+  'stop_tracking',
+  { description: 'Zatrzymuje chodzący timer (gdziekolwiek jest).', inputSchema: {} },
+  async () => {
+    store.stopTracking()
+    return json({ stopped: true })
+  }
+)
+
 // --- notatki ---
 
 server.registerTool(

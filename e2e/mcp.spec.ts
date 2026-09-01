@@ -80,6 +80,18 @@ test('MCP: pełny cykl todosów i notatek przez stdio', async () => {
     JSON.parse(fs.readFileSync(path.join(dataDir, 'todos.json'), 'utf8'))[0].url
   ).toBeUndefined()
 
+  // tracking czasu: start otwiera sesję, stop ją zamyka
+  const stoper = JSON.parse(
+    JSON.parse(await mcp.call('add_todo', { text: 'Stoper' })).content[0].text
+  )
+  await mcp.call('start_tracking', { id: stoper.id })
+  const readTodos = (): { text: string; sessions?: { end?: string }[] }[] =>
+    JSON.parse(fs.readFileSync(path.join(dataDir, 'todos.json'), 'utf8'))
+  expect(readTodos().find((t) => t.text === 'Stoper')?.sessions?.[0].end).toBeUndefined()
+  await mcp.call('stop_tracking', {})
+  expect(readTodos().find((t) => t.text === 'Stoper')?.sessions?.[0].end).toBeTruthy()
+  await mcp.call('delete_todo', { id: stoper.id })
+
   // notatka: utwórz z treścią → pobierz → zmień → wylistuj
   const created = JSON.parse(await mcp.call('create_note', { title: 'Specyfikacja', body: '# Hej' }))
   const noteId = JSON.parse(created.content[0].text).id

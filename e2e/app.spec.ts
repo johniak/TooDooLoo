@@ -85,6 +85,49 @@ test('rollover: w poprzednim dniu zostaje duch przeniesionego todosa', async () 
   await app.close()
 })
 
+test('tracking czasu: start/stop, jeden timer naraz, done stopuje', async () => {
+  const { app, page, dataDir } = await launch({
+    seedTodos: [
+      { text: 'Alfa', date: daysAgo(0) },
+      { text: 'Beta', date: daysAgo(0) }
+    ]
+  })
+  const read = (): { text: string; sessions?: { start: string; end?: string }[] }[] =>
+    JSON.parse(fs.readFileSync(path.join(dataDir, 'todos.json'), 'utf8'))
+  const alfa = page.locator('.todo', { hasText: 'Alfa' })
+  const beta = page.locator('.todo', { hasText: 'Beta' })
+
+  await alfa.locator('.todo-track').click()
+  await expect(alfa).toHaveClass(/todo-tracking/)
+  await expect(alfa.locator('.todo-time')).toBeVisible()
+  await expect.poll(() => read().find((t) => t.text === 'Alfa')?.sessions?.length).toBe(1)
+
+  // start na Becie zamyka sesję Alfy — jeden timer w systemie
+  await beta.locator('.todo-track').click()
+  await expect.poll(() => read().find((t) => t.text === 'Alfa')?.sessions?.[0].end).toBeTruthy()
+  await expect(beta).toHaveClass(/todo-tracking/)
+
+  // odhaczenie stopuje timer
+  await beta.locator('.todo-check').click()
+  await expect.poll(() => read().find((t) => t.text === 'Beta')?.sessions?.[0].end).toBeTruthy()
+  await expect(page.locator('.todo-tracking')).toHaveCount(0)
+  await app.close()
+})
+
+test('kolor tożsamości: ten sam na todosie dziś i na jego duchu', async () => {
+  const origin = prevWorkday()
+  const { app, page } = await launch({ seedTodos: [{ text: 'Kameleon', date: origin }] })
+  const color = await page
+    .locator('.todo', { hasText: 'Kameleon' })
+    .evaluate((el) => getComputedStyle(el).borderLeftColor)
+  await page.locator('.day', { hasText: dayLabel(origin) }).click()
+  const ghostColor = await page
+    .locator('.todo-ghost', { hasText: 'Kameleon' })
+    .evaluate((el) => getComputedStyle(el).borderLeftColor)
+  expect(ghostColor).toBe(color)
+  await app.close()
+})
+
 test('notatki: tworzenie, edycja md, tryb wizualny, podstrona', async () => {
   const { app, page } = await launch()
   await page.locator('.notes-link').click()

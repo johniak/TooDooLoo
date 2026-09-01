@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { motion, AnimatePresence, MotionConfig } from 'framer-motion'
-import { Todo, NoteMeta, DaySummary, todayStr, dayLabel } from '../../shared/core'
+import { Todo, NoteMeta, DaySummary, todayStr, dayLabel, secondsOnDay, fmtDur } from '../../shared/core'
 import Todos from './components/Todos'
 import Notes from './components/Notes'
 import DayNote from './components/DayNote'
@@ -64,6 +64,10 @@ function DayFuse({
       {todos.length > 0 && (
         <span className="fuse-label">
           {done}/{todos.length}
+          {(() => {
+            const secs = todos.reduce((a, t) => a + secondsOnDay(t, date), 0)
+            return secs >= 60 ? ` · ${fmtDur(secs)}` : ''
+          })()}
         </span>
       )}
     </div>

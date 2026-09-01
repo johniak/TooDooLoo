@@ -3,6 +3,15 @@ import fs from 'fs'
 import path from 'path'
 import { Todo, NoteMeta, todayStr } from './core'
 
+function closeOpenSession(t: Todo, end: string): boolean {
+  const s = t.sessions?.at(-1)
+  if (s && !s.end) {
+    s.end = end
+    return true
+  }
+  return false
+}
+
 // bez zależności od Electrona — używane przez main proces i serwer MCP
 let dir = process.env.TOODOOLOO_DATA_DIR || ''
 
@@ -62,10 +71,32 @@ export function updateTodo(id: string, patch: Partial<Todo>): Todo | null {
   const todo = todos.find((t) => t.id === id)
   if (!todo) return null
   Object.assign(todo, patch, { id: todo.id })
+  if (todo.done) closeOpenSession(todo, new Date().toISOString()) // zrobione = timer staje
   if (!todo.url) delete todo.url
   if (!todo.noteId) delete todo.noteId
   saveTodos(todos)
   return todo
+}
+
+/** Startuje timer na todosie; jedyny otwarty w systemie — inne sesje zamyka. */
+export function startTracking(id: string): Todo | null {
+  const now = new Date().toISOString()
+  const todos = loadTodos()
+  const todo = todos.find((t) => t.id === id)
+  if (!todo || todo.done) return null
+  for (const t of todos) closeOpenSession(t, now)
+  ;(todo.sessions ??= []).push({ start: now })
+  saveTodos(todos)
+  return todo
+}
+
+/** Zamyka otwartą sesję, gdziekolwiek jest. */
+export function stopTracking(): void {
+  const now = new Date().toISOString()
+  const todos = loadTodos()
+  let changed = false
+  for (const t of todos) changed = closeOpenSession(t, now) || changed
+  if (changed) saveTodos(todos)
 }
 
 export function deleteTodo(id: string): void {

@@ -34,6 +34,8 @@ Katalog danych: `app.getPath('userData')/data/` (w testach nadpisywany przez env
 ## Reguły biznesowe
 
 - **Rollover**: nieodznaczone todosy z dni poprzednich przechodzą na dziś (przy starcie appki i o północy). Pierwszy rollover zapisuje `rolledFrom` (pierwotna data, kolejne rollovery jej nie nadpisują) — na todosie widać chip `↻ <dzień>`. W widoku dnia, przez który todos przeszedł (`rolledFrom <= dzień < date`), IPC `todos:list` zwraca go jako „ducha" (wyszarzony, bez checkboxa, chip `↻ <dzień docelowy>`).
+- **Tracking czasu** (à la Timemator): `sessions: {start, end?}[]` na todosie (ISO, brak `end` = timer chodzi), **jeden otwarty timer w całym systemie** — `startTracking` w store zamyka inne sesje; inwariant tylko tam. Odhaczenie todosa i uśpienie laptopa (`powerMonitor` suspend) stopują timer. Rollover nie rusza sesji — todos to samo `id`, czas jedzie z nim przez dni; czas per dzień tnie się z timestampów (`secondsOnDay`). UI: przycisk ▶/⏸ na wierszu (▶ widoczny na hover), chip `⏱ h:mm:ss` (ember + żywe sekundy gdy chodzi), karta z emberową poświatą, suma dnia w labelu lontu; tray pokazuje `▶ czas bieżącej sesji` (tick 1s tylko podczas trackingu, odświeżany też przez fs.watch po zmianach z MCP). MCP: `start_tracking`/`stop_tracking`.
+- **Kolor tożsamości zadania**: hash z `id` na 8-kolorową przygaszoną paletę (`taskColor` w core.ts) → lewa krawędź karty todosa (3px), ta sama na duchu — po kolorze widać, że to to samo zadanie przez wszystkie dni. Pilność (ember-dot) zostaje osobnym wymiarem koloru.
 - **Przypomnienia** (natywne `Notification` z main procesu, tick co minutę):
   - `immediate` → co 3 min
   - `high` → co 30 min
@@ -47,7 +49,7 @@ Katalog danych: `app.getPath('userData')/data/` (w testach nadpisywany przez env
 
 `src/main/mcp.ts` → budowany do `out/main/mcp.js` (drugi entry w electron.vite.config). Stdio, SDK `@modelcontextprotocol/sdk` + zod. Operuje wprost na plikach danych (appka nie musi działać); appka łapie zmiany z zewnątrz przez `fs.watch` → IPC `data-changed` → reload UI.
 
-- Narzędzia: `list/add/update/delete_todo`, `list/get/create/update/delete_note`, `get/set_day_note`.
+- Narzędzia: `list/add/update/delete_todo`, `start/stop_tracking`, `list/get/create/update/delete_note`, `get/set_day_note`.
 - Ścieżka danych: `TOODOOLOO_DATA_DIR` lub kanoniczna `~/Library/Application Support/TooDooLoo/data` (main proces migruje ze starej `toodooloo/data` przy starcie).
 - Rejestracja globalna: `claude mcp add --scope user toodooloo -- node <repo>/out/main/mcp.js` (już zrobiona na tej maszynie).
 

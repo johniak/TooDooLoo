@@ -1,6 +1,16 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Todo, NoteMeta, Urgency, URGENCIES, dayLabel } from '../../../shared/core'
+import {
+  Todo,
+  NoteMeta,
+  Urgency,
+  URGENCIES,
+  dayLabel,
+  trackingSince,
+  trackedSeconds,
+  fmtClock,
+  taskColor
+} from '../../../shared/core'
 
 const hostname = (u: string): string => {
   try {
@@ -57,6 +67,15 @@ export default function Todos({
   const [urgency, setUrgency] = useState<Urgency>('medium')
   const [burstId, setBurstId] = useState<string | null>(null)
   const [pickerFor, setPickerFor] = useState<{ id: string; kind: 'link' | 'urgency' } | null>(null)
+  const [, setClockTick] = useState(0)
+
+  // żywe sekundy na chipie czasu, tylko gdy jakiś timer chodzi
+  const anyTracking = todos.some((t) => trackingSince(t))
+  useEffect(() => {
+    if (!anyTracking) return
+    const i = setInterval(() => setClockTick((n) => n + 1), 1000)
+    return () => clearInterval(i)
+  }, [anyTracking])
 
   const add = async (): Promise<void> => {
     if (!text.trim()) return
@@ -124,6 +143,9 @@ export default function Todos({
           {todos.map((t) => {
             const u = URGENCIES.find((x) => x.value === t.urgency)!
             const pickerOpen = pickerFor?.id === t.id
+            const running = !!trackingSince(t)
+            const secs = trackedSeconds(t)
+            const edge = { borderLeftColor: taskColor(t.id) }
             // duch: todos przeszedł przez ten dzień rolloverem — pokazujemy ślad, edycja na dniu docelowym
             if (t.date !== date) {
               return (
@@ -133,6 +155,7 @@ export default function Todos({
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
+                  style={edge}
                   className="todo card todo-ghost"
                 >
                   <span className="todo-ghost-mark" style={{ color: u.color }}>
@@ -153,8 +176,8 @@ export default function Todos({
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, x: 60, scale: 0.9 }}
                 transition={{ type: 'spring', stiffness: 500, damping: 34 }}
-                style={pickerOpen ? { zIndex: 5 } : undefined}
-                className={`todo card ${t.done ? 'todo-done' : ''} ${highlightId === t.id ? 'todo-flash' : ''}`}
+                style={pickerOpen ? { ...edge, zIndex: 5 } : edge}
+                className={`todo card ${t.done ? 'todo-done' : ''} ${running ? 'todo-tracking' : ''} ${highlightId === t.id ? 'todo-flash' : ''}`}
               >
                 <button
                   className="todo-check"
@@ -168,6 +191,11 @@ export default function Todos({
                 {t.rolledFrom && (
                   <span className="todo-rolled" title={`Niezrobione od ${t.rolledFrom}`}>
                     ↻ {dayLabel(t.rolledFrom)}
+                  </span>
+                )}
+                {(secs > 0 || running) && (
+                  <span className={`todo-time ${running ? 'todo-time-live' : ''}`}>
+                    ⏱ {fmtClock(secs)}
                   </span>
                 )}
                 {t.url && (
@@ -195,6 +223,19 @@ export default function Todos({
                 >
                   <span className="ember-dot ember-glow" style={{ background: u.color }} />
                 </button>
+                {!t.done && (
+                  <button
+                    className={`todo-icon todo-track ${running ? 'todo-track-on' : ''}`}
+                    title={running ? 'Zatrzymaj licznik' : 'Licz czas'}
+                    onClick={async () => {
+                      if (running) await window.api.stopTracking()
+                      else await window.api.startTracking(t.id)
+                      onChange()
+                    }}
+                  >
+                    {running ? '⏸' : '▶'}
+                  </button>
+                )}
                 <button
                   className="todo-icon"
                   title="Podepnij link lub notatkę"

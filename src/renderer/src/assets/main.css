@@ -521,6 +521,43 @@ textarea {
   white-space: nowrap;
 }
 
+/* tracking czasu: lewa krawędź = kolor tożsamości zadania, stały przez wszystkie dni */
+.todo {
+  border-left-width: 3px;
+}
+
+.todo-track {
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+.todo:hover .todo-track,
+.todo-track:focus-visible,
+.todo-track-on {
+  opacity: 1;
+}
+
+.todo-track-on {
+  color: var(--ember);
+}
+
+.todo-time {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.todo-time-live {
+  color: var(--ember);
+}
+
+.todo-tracking {
+  box-shadow:
+    0 0 0 1px rgba(255, 120, 71, 0.35),
+    0 0 24px rgba(255, 120, 71, 0.12);
+}
+
 /* duch todosa, który przeszedł przez ten dzień rolloverem */
 .todo-ghost {
   opacity: 0.55;
