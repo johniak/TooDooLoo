@@ -1,5 +1,6 @@
 import { contextBridge, ipcRenderer } from 'electron'
 import type { Todo, NoteMeta, DaySummary, Urgency } from '../shared/core'
+import type { Settings } from '../shared/store'
 
 export const api = {
   listTodos: (date: string): Promise<Todo[]> => ipcRenderer.invoke('todos:list', date),
@@ -16,10 +17,8 @@ export const api = {
   startTracking: (id: string): Promise<Todo | null> => ipcRenderer.invoke('tracking:start', id),
   stopTracking: (): Promise<void> => ipcRenderer.invoke('tracking:stop'),
   daysSummary: (): Promise<Record<string, DaySummary>> => ipcRenderer.invoke('days:summary'),
-  getSettings: (): Promise<{ workStart: string; workEnd: string; showDock: boolean }> =>
-    ipcRenderer.invoke('settings:get'),
-  setSettings: (s: { workStart: string; workEnd: string; showDock: boolean }): Promise<void> =>
-    ipcRenderer.invoke('settings:set', s),
+  getSettings: (): Promise<Settings> => ipcRenderer.invoke('settings:get'),
+  setSettings: (s: Settings): Promise<void> => ipcRenderer.invoke('settings:set', s),
   onOpenTodo: (cb: (p: { id: string; date: string }) => void): (() => void) => {
     const handler = (_e: unknown, p: { id: string; date: string }): void => cb(p)
     ipcRenderer.on('open-todo', handler)

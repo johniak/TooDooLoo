@@ -1220,6 +1220,25 @@ textarea {
     0 0 24px rgba(255, 120, 71, 0.12);
 }
 
+/* auto-linki w notatkach: #1 (todos), AB#123, GH#123 */
+.ref-link {
+  cursor: pointer;
+  border-bottom: 1px dotted currentColor;
+}
+
+.ref-todo {
+  color: var(--ember);
+}
+
+.ref-ab,
+.ref-gh {
+  color: var(--dawn);
+}
+
+.ref-link:hover {
+  border-bottom-style: solid;
+}
+
 .todo-num {
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   font-size: 12px;

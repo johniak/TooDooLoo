@@ -1,4 +1,6 @@
-export type SettingsValues = { workStart: string; workEnd: string; showDock: boolean }
+import type { Settings as SettingsValues } from '../../../shared/store'
+
+export type { SettingsValues }
 
 type Props = { values: SettingsValues; onSave: (s: SettingsValues) => void }
 
@@ -55,6 +57,33 @@ export default function Settings({ values, onSave }: Props): React.JSX.Element {
               type="time"
               value={workEnd}
               onChange={(e) => onSave({ ...values, workEnd: e.target.value })}
+            />
+          </label>
+        </div>
+        <h3 className="settings-eyebrow">Linki w notatkach</h3>
+        <div className="card settings-card">
+          <label className="settings-row settings-ab">
+            <span className="settings-copy">
+              Azure Boards (AB#)
+              <small>AB#123 w notatce otworzy work item pod tym adresem.</small>
+            </span>
+            <input
+              type="url"
+              placeholder="https://dev.azure.com/org/projekt/_workitems/edit"
+              value={values.azureBase}
+              onChange={(e) => onSave({ ...values, azureBase: e.target.value })}
+            />
+          </label>
+          <label className="settings-row settings-gh">
+            <span className="settings-copy">
+              GitHub (GH#)
+              <small>GH#123 otworzy issue/PR w tym repozytorium.</small>
+            </span>
+            <input
+              type="url"
+              placeholder="https://github.com/owner/repo"
+              value={values.githubBase}
+              onChange={(e) => onSave({ ...values, githubBase: e.target.value })}
             />
           </label>
         </div>

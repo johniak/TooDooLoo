@@ -126,23 +126,34 @@ export default function App(): React.JSX.Element {
   const [openNoteId, setOpenNoteId] = useState<string | null>(null)
   const [view, setView] = useState<'day' | 'notes' | 'settings' | 'timeline' | 'reports'>('day')
   const [highlightId, setHighlightId] = useState<string | null>(null)
-  const [workStart, setWorkStart] = useState('09:00')
-  const [workEnd, setWorkEnd] = useState('17:00')
-  const [showDock, setShowDock] = useState(true)
+  const [settings, setSettingsState] = useState<SettingsValues>({
+    workStart: '09:00',
+    workEnd: '17:00',
+    showDock: true,
+    azureBase: '',
+    githubBase: ''
+  })
 
   useEffect(() => {
-    window.api.getSettings().then((s) => {
-      setWorkStart(s.workStart)
-      setWorkEnd(s.workEnd)
-      setShowDock(s.showDock)
-    })
-    return window.api.onOpenTodo(({ id, date }) => {
+    window.api.getSettings().then(setSettingsState)
+    const flash = (id: string, date: string): void => {
       setSelected(date)
       setView('day')
       setOpenNoteId(null)
       setHighlightId(id)
       setTimeout(() => setHighlightId(null), 2500)
-    })
+    }
+    // #N kliknięte w notatce (dekoracja refLinks) — event zamiast wiercenia propsów przez edytory
+    const byNum = async (e: Event): Promise<void> => {
+      const t = (await window.api.listAllTodos()).find((x) => x.num === (e as CustomEvent).detail)
+      if (t) flash(t.id, t.date)
+    }
+    window.addEventListener('open-todo-num', byNum)
+    const unsub = window.api.onOpenTodo(({ id, date }) => flash(id, date))
+    return () => {
+      window.removeEventListener('open-todo-num', byNum)
+      unsub()
+    }
   }, [])
 
   const reload = useCallback(async () => {
@@ -251,7 +262,7 @@ export default function App(): React.JSX.Element {
                 <>
                   <header className="day-header">
                     <h2 className="panel-title">{dayLabel(selected)}</h2>
-                    <DayFuse todos={todos} workStart={workStart} workEnd={workEnd} date={selected} />
+                    <DayFuse todos={todos} workStart={settings.workStart} workEnd={settings.workEnd} date={selected} />
                   </header>
                   <Todos
                     date={selected}
@@ -282,18 +293,16 @@ export default function App(): React.JSX.Element {
                     setTimeout(() => setHighlightId(null), 2500)
                   }
                   return view === 'timeline' ? (
-                    <Timeline workStart={workStart} workEnd={workEnd} onOpenTodo={openTodo} />
+                    <Timeline workStart={settings.workStart} workEnd={settings.workEnd} onOpenTodo={openTodo} />
                   ) : (
                     <Reports onOpenTodo={openTodo} />
                   )
                 })()
               ) : (
                 <Settings
-                  values={{ workStart, workEnd, showDock }}
+                  values={settings}
                   onSave={(s: SettingsValues) => {
-                    setWorkStart(s.workStart)
-                    setWorkEnd(s.workEnd)
-                    setShowDock(s.showDock)
+                    setSettingsState(s)
                     window.api.setSettings(s)
                   }}
                 />

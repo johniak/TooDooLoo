@@ -5,6 +5,7 @@ import StarterKit from '@tiptap/starter-kit'
 import { Markdown } from '@tiptap/markdown'
 import { Placeholder } from '@tiptap/extensions'
 import { NoteMeta, dayLabel, todayStr } from '../../../shared/core'
+import { refLinks, RefBases } from '../reflinks'
 
 type Props = {
   notes: NoteMeta[]
@@ -94,12 +95,25 @@ export function VisualEditor({
   onSave: (md: string) => void
   placeholder?: string
 }): React.JSX.Element {
-  const editor = useEditor({
-    extensions: [StarterKit, Markdown, Placeholder.configure({ placeholder })],
-    content: body,
-    contentType: 'markdown',
-    onUpdate: ({ editor }) => onSave(editor.getMarkdown())
-  })
+  const [bases, setBases] = useState<RefBases | null>(null)
+  useEffect(() => {
+    window.api.getSettings().then((s) => setBases({ azureBase: s.azureBase, githubBase: s.githubBase }))
+  }, [])
+
+  const editor = useEditor(
+    {
+      extensions: [
+        StarterKit,
+        Markdown,
+        Placeholder.configure({ placeholder }),
+        refLinks(bases ?? { azureBase: '', githubBase: '' })
+      ],
+      content: body,
+      contentType: 'markdown',
+      onUpdate: ({ editor }) => onSave(editor.getMarkdown())
+    },
+    [bases] // po wczytaniu baz edytor odtwarza się raz, z aktywnymi linkami
+  )
 
   const active = useEditorState({
     editor,

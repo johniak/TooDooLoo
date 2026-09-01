@@ -162,8 +162,20 @@ export function deleteTodo(id: string): void {
 
 // --- settings ---
 
-export type Settings = { workStart: string; workEnd: string; showDock: boolean }
-const DEFAULT_SETTINGS: Settings = { workStart: '09:00', workEnd: '17:00', showDock: true }
+export type Settings = {
+  workStart: string
+  workEnd: string
+  showDock: boolean
+  azureBase: string // baza linków AB#123 (np. https://dev.azure.com/org/proj/_workitems/edit)
+  githubBase: string // baza linków GH#123 (np. https://github.com/owner/repo)
+}
+const DEFAULT_SETTINGS: Settings = {
+  workStart: '09:00',
+  workEnd: '17:00',
+  showDock: true,
+  azureBase: '',
+  githubBase: ''
+}
 const settingsFile = (): string => path.join(dataDir(), 'settings.json')
 
 export function loadSettings(): Settings {

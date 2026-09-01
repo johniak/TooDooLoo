@@ -346,6 +346,30 @@ test('kolor tożsamości: ten sam na todosie dziś i na jego duchu', async () =>
   await app.close()
 })
 
+test('auto-linki w notatce: #1 → todos, AB#/GH# dekorowane', async () => {
+  const { app, page } = await launch({
+    seedTodos: [{ text: 'Celowany', date: daysAgo(0) }], // dostanie #1 przy backfillu
+    settings: {
+      workStart: '09:00',
+      workEnd: '17:00',
+      showDock: true,
+      azureBase: 'https://dev.azure.com/org/proj/_workitems/edit',
+      githubBase: 'https://github.com/johniak/TooDooLoo'
+    }
+  })
+  await page.locator('.day-note .tiptap').click()
+  await page.keyboard.type('Todos #1 oraz AB#42 i GH#7')
+
+  await expect(page.locator('.ref-todo')).toHaveText('#1')
+  await expect(page.locator('.ref-ab')).toHaveText('AB#42')
+  await expect(page.locator('.ref-gh')).toHaveText('GH#7')
+
+  // klik w #1 przeskakuje do todosa
+  await page.locator('.ref-todo').click()
+  await expect(page.locator('.todo-flash')).toContainText('Celowany')
+  await app.close()
+})
+
 test('notatki: tworzenie, edycja md, tryb wizualny, podstrona', async () => {
   const { app, page } = await launch()
   await page.locator('.notes-link').click()
