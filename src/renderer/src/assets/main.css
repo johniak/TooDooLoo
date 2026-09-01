@@ -552,7 +552,58 @@ textarea {
   align-items: center;
   gap: var(--s1);
   font-size: 13px;
-  padding: 4px 0;
+  padding: 5px 6px;
+  border-radius: 8px;
+  width: 100%;
+  text-align: left;
+  color: var(--text);
+}
+
+.rep-task:hover {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.rep-task[aria-pressed='true'] {
+  background: rgba(255, 120, 71, 0.12);
+  box-shadow: inset 2px 0 0 var(--ember);
+}
+
+.rep-task-clear {
+  color: var(--muted);
+}
+
+/* przełącznik zakresu raportu */
+.rep-switch {
+  display: flex;
+  gap: 4px;
+}
+
+.rep-switch button {
+  padding: 5px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.rep-switch button:hover {
+  color: var(--text);
+}
+
+.rep-switch .rep-switch-on {
+  color: var(--text);
+  border-color: var(--ember);
+  background: rgba(255, 120, 71, 0.12);
+}
+
+/* miesiąc: 28–31 wąskich słupków */
+.rep-chart-month {
+  gap: 3px;
+}
+
+.rep-chart-month .rep-bar {
+  width: 100%;
+  border-radius: 3px 3px 1px 1px;
 }
 
 .rep-task .rep-row-edge {

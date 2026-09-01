@@ -279,6 +279,19 @@ test('raport: słupki dni, legenda zadań z sumami, log sesji, klik → todos', 
   await expect(page.locator('.rep-log-head', { hasText: 'Dzisiaj' })).toBeVisible()
   await expect(page.locator('.rep-row')).toHaveCount(2)
 
+  // raport per zadanie: klik w legendę filtruje, drugi klik zdejmuje
+  await page.locator('.rep-task', { hasText: 'Raportowy' }).click()
+  await expect(page.locator('.rep-row')).toHaveCount(1)
+  await expect(page.locator('.rep-summary-total')).toHaveText('2:00')
+  await page.locator('.rep-task', { hasText: 'Raportowy' }).click()
+  await expect(page.locator('.rep-row')).toHaveCount(2)
+
+  // zakres miesięczny
+  await page.getByRole('radio', { name: 'Miesiąc' }).click()
+  await expect(page.locator('.tl-range')).toContainText(String(new Date().getFullYear()))
+  await expect(page.locator('.rep-seg')).toHaveCount(2)
+  await page.getByRole('radio', { name: 'Tydzień' }).click()
+
   await page.locator('.rep-row', { hasText: 'Raportowy' }).click()
   await expect(page.locator('.todo-flash')).toContainText('Raportowy')
   await app.close()
