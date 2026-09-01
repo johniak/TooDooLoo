@@ -149,9 +149,22 @@ export default function App(): React.JSX.Element {
       if (t) flash(t.id, t.date)
     }
     window.addEventListener('open-todo-num', byNum)
+    // [[Tytuł]] kliknięty w notatce — otwiera notatkę po tytule, nieistniejącą tworzy (wiki-styl)
+    const byTitle = async (e: Event): Promise<void> => {
+      const title = String((e as CustomEvent).detail).trim()
+      const all = await window.api.listNotes()
+      let note = all.find(
+        (n) => !n.id.startsWith('day-') && n.title.trim().toLowerCase() === title.toLowerCase()
+      )
+      note ??= await window.api.createNote({ title, date: todayStr() })
+      setView('notes')
+      setOpenNoteId(note.id)
+    }
+    window.addEventListener('open-note-title', byTitle)
     const unsub = window.api.onOpenTodo(({ id, date }) => flash(id, date))
     return () => {
       window.removeEventListener('open-todo-num', byNum)
+      window.removeEventListener('open-note-title', byTitle)
       unsub()
     }
   }, [])

@@ -370,6 +370,24 @@ test('auto-linki w notatce: #1 → todos, AB#/GH# dekorowane', async () => {
   await app.close()
 })
 
+test('odnośniki [[...]] między notatkami: klik tworzy i otwiera, picker linkuje istniejącą', async () => {
+  const { app, page } = await launch()
+  // ręcznie wpisany [[...]] jest dekorowany; klik tworzy notatkę i ją otwiera (wiki-styl)
+  await page.locator('.day-note .tiptap').click()
+  await page.keyboard.type('Zobacz [[Plan Q4]]')
+  await expect(page.locator('.ref-note')).toHaveText('[[Plan Q4]]')
+  await page.locator('.ref-note').click()
+  await expect(page.locator('.note-title')).toHaveValue('Plan Q4')
+
+  // picker ▤+ w toolbarze podlinkowuje istniejącą notatkę
+  await page.locator('.day', { hasText: 'Dzisiaj' }).click()
+  await page.locator('.day-note .tiptap').click()
+  await page.locator('.rt-btn[title="Odnośnik do notatki"]').click()
+  await page.locator('.rt-note-picker .picker-option', { hasText: 'Plan Q4' }).click()
+  await expect(page.locator('.day-note .ref-note')).toHaveCount(2)
+  await app.close()
+})
+
 test('notatki: tworzenie, edycja md, tryb wizualny, podstrona', async () => {
   const { app, page } = await launch()
   await page.locator('.notes-link').click()

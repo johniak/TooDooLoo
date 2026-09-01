@@ -1231,8 +1231,20 @@ textarea {
 }
 
 .ref-ab,
-.ref-gh {
+.ref-gh,
+.ref-note {
   color: var(--dawn);
+}
+
+.rt-notelink {
+  position: relative;
+}
+
+.rt-note-picker {
+  left: 0;
+  right: auto;
+  top: calc(100% + 4px);
+  z-index: 20;
 }
 
 .ref-link:hover {

@@ -8,6 +8,7 @@ import type { Node } from '@tiptap/pm/model'
 export type RefBases = { azureBase: string; githubBase: string }
 
 const PATTERNS = [
+  { re: /\[\[([^\[\]\n]+)\]\]/g, type: 'note' }, // wiki-link do notatki po tytule
   { re: /AB#(\d+)/g, type: 'ab' },
   { re: /GH#(\d+)/g, type: 'gh' },
   { re: /(?<![\w#])#(\d+)/g, type: 'todo' } // lookbehind pomija środek AB#/GH#
@@ -28,7 +29,7 @@ function decorate(doc: Node): DecorationSet {
           Decoration.inline(from, from + m[0].length, {
             class: `ref-link ref-${type}`,
             'data-ref': type,
-            'data-num': m[1]
+            'data-val': m[1]
           })
         )
       }
@@ -48,14 +49,17 @@ export function refLinks(bases: RefBases): Extension {
             handleClick: (_view, _pos, event) => {
               const el = (event.target as HTMLElement).closest?.('.ref-link') as HTMLElement | null
               if (!el) return false
-              const num = el.dataset.num!
+              const val = el.dataset.val!
               if (el.dataset.ref === 'todo') {
                 // App nasłuchuje i przełącza na dzień todosa — bez wiercenia propsów przez edytory
-                window.dispatchEvent(new CustomEvent('open-todo-num', { detail: Number(num) }))
+                window.dispatchEvent(new CustomEvent('open-todo-num', { detail: Number(val) }))
+              } else if (el.dataset.ref === 'note') {
+                // otwiera notatkę po tytule; nieistniejącą App tworzy (wiki-styl)
+                window.dispatchEvent(new CustomEvent('open-note-title', { detail: val }))
               } else if (el.dataset.ref === 'ab' && bases.azureBase) {
-                window.open(joinUrl(bases.azureBase, num))
+                window.open(joinUrl(bases.azureBase, val))
               } else if (el.dataset.ref === 'gh' && bases.githubBase) {
-                window.open(joinUrl(bases.githubBase, `issues/${num}`)) // GitHub przekierowuje issues→pull
+                window.open(joinUrl(bases.githubBase, `issues/${val}`)) // GitHub przekierowuje issues→pull
               }
               return true
             }

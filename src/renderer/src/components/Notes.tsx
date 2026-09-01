@@ -121,7 +121,17 @@ export function VisualEditor({
       editor ? Object.fromEntries(FORMAT_BUTTONS.map((b) => [b.key, b.isActive(editor)])) : {}
   })
 
+  // odnośnik [[...]] do innej notatki: picker z istniejącymi + tworzenie nowej
+  const [notePicker, setNotePicker] = useState(false)
+  const [noteQuery, setNoteQuery] = useState('')
+  const [allNotes, setAllNotes] = useState<NoteMeta[]>([])
+
   if (!editor) return <></>
+
+  const insertNoteLink = (title: string): void => {
+    editor.chain().focus().insertContent(`[[${title}]]`).run()
+    setNotePicker(false)
+  }
 
   return (
     <div className="note-visual">
@@ -138,6 +148,54 @@ export function VisualEditor({
             {b.label}
           </button>
         ))}
+        <span className="rt-notelink">
+          <button
+            className="rt-btn"
+            title="Odnośnik do notatki"
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={async () => {
+              if (notePicker) {
+                setNotePicker(false)
+                return
+              }
+              setAllNotes((await window.api.listNotes()).filter((n) => !n.id.startsWith('day-')))
+              setNoteQuery('')
+              setNotePicker(true)
+            }}
+          >
+            ▤+
+          </button>
+          {notePicker && (
+            <div className="picker rt-note-picker">
+              <input
+                className="picker-url"
+                placeholder="Szukaj lub nazwij nową…"
+                value={noteQuery}
+                autoFocus
+                onChange={(e) => setNoteQuery(e.target.value)}
+              />
+              {allNotes
+                .filter((n) => n.title.toLowerCase().includes(noteQuery.trim().toLowerCase()))
+                .slice(0, 8)
+                .map((n) => (
+                  <button key={n.id} className="picker-option" onClick={() => insertNoteLink(n.title)}>
+                    ▤ {n.title}
+                  </button>
+                ))}
+              {noteQuery.trim() && (
+                <button
+                  className="picker-option"
+                  onClick={async () => {
+                    await window.api.createNote({ title: noteQuery.trim(), date: todayStr() })
+                    insertNoteLink(noteQuery.trim())
+                  }}
+                >
+                  ＋ Utwórz „{noteQuery.trim()}"
+                </button>
+              )}
+            </div>
+          )}
+        </span>
       </div>
       <EditorContent editor={editor} />
     </div>
