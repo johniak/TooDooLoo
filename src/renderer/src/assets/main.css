@@ -526,17 +526,6 @@ textarea {
   border-left-width: 3px;
 }
 
-.todo-track {
-  opacity: 0;
-  transition: opacity 0.15s;
-}
-
-.todo:hover .todo-track,
-.todo-track:focus-visible,
-.todo-track-on {
-  opacity: 1;
-}
-
 .todo-track-on {
   color: var(--ember);
 }
