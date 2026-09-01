@@ -1,4 +1,4 @@
-import { app, shell, BrowserWindow, ipcMain } from 'electron'
+import { app, shell, BrowserWindow, ipcMain, Tray, Menu, nativeImage } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
@@ -49,6 +49,38 @@ function createWindow(): void {
   }
 }
 
+function showWindow(): void {
+  const win = BrowserWindow.getAllWindows()[0]
+  if (win) {
+    win.show()
+    win.focus()
+  } else {
+    createWindow()
+  }
+}
+
+function applyDock(show: boolean): void {
+  if (process.platform !== 'darwin') return
+  if (show) app.dock?.show()
+  else app.dock?.hide()
+}
+
+let tray: Tray // referencja trzymana, żeby GC nie zabrał ikony
+
+function createTray(): void {
+  // ponytail: pusty obrazek + tekstowy tytuł zamiast pliku ikony — macOS renderuje tekst w pasku menu
+  tray = new Tray(nativeImage.createEmpty())
+  tray.setTitle('✓')
+  tray.setToolTip('TooDooLoo')
+  tray.setContextMenu(
+    Menu.buildFromTemplate([
+      { label: 'Pokaż TooDooLoo', click: showWindow },
+      { type: 'separator' },
+      { label: 'Zakończ', click: () => app.quit() }
+    ])
+  )
+}
+
 function registerIpc(): void {
   ipcMain.handle('todos:list', (_e, date: string) =>
     // todosy dnia + „duchy": todosy, które przeszły przez ten dzień rolloverem (t.date !== date)
@@ -73,7 +105,10 @@ function registerIpc(): void {
     return summary
   })
   ipcMain.handle('settings:get', () => storage.loadSettings())
-  ipcMain.handle('settings:set', (_e, s) => storage.saveSettings(s))
+  ipcMain.handle('settings:set', (_e, s) => {
+    storage.saveSettings(s)
+    applyDock(s.showDock ?? true)
+  })
   ipcMain.handle('notes:list', () => storage.listNotes())
   ipcMain.handle('notes:get', (_e, id: string) => storage.getNote(id))
   ipcMain.handle('notes:create', (_e, input) => storage.createNote(input))
@@ -107,6 +142,8 @@ app.whenReady().then(() => {
   registerIpc()
   startReminders()
   watchData()
+  createTray()
+  applyDock(storage.loadSettings().showDock)
   createWindow()
 
   app.on('activate', function () {

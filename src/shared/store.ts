@@ -74,14 +74,15 @@ export function deleteTodo(id: string): void {
 
 // --- settings ---
 
-export type Settings = { workStart: string }
+export type Settings = { workStart: string; showDock: boolean }
+const DEFAULT_SETTINGS: Settings = { workStart: '09:00', showDock: true }
 const settingsFile = (): string => path.join(dataDir(), 'settings.json')
 
 export function loadSettings(): Settings {
   try {
-    return { workStart: '09:00', ...JSON.parse(fs.readFileSync(settingsFile(), 'utf8')) }
+    return { ...DEFAULT_SETTINGS, ...JSON.parse(fs.readFileSync(settingsFile(), 'utf8')) }
   } catch {
-    return { workStart: '09:00' }
+    return { ...DEFAULT_SETTINGS }
   }
 }
 

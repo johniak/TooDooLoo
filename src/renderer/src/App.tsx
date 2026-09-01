@@ -79,9 +79,13 @@ export default function App(): React.JSX.Element {
   const [view, setView] = useState<'day' | 'notes'>('day')
   const [highlightId, setHighlightId] = useState<string | null>(null)
   const [workStart, setWorkStart] = useState('09:00')
+  const [showDock, setShowDock] = useState(true)
 
   useEffect(() => {
-    window.api.getSettings().then((s) => setWorkStart(s.workStart))
+    window.api.getSettings().then((s) => {
+      setWorkStart(s.workStart)
+      setShowDock(s.showDock)
+    })
     return window.api.onOpenTodo(({ id, date }) => {
       setSelected(date)
       setView('day')
@@ -162,7 +166,18 @@ export default function App(): React.JSX.Element {
               value={workStart}
               onChange={(e) => {
                 setWorkStart(e.target.value)
-                window.api.setSettings({ workStart: e.target.value })
+                window.api.setSettings({ workStart: e.target.value, showDock })
+              }}
+            />
+          </label>
+          <label className="settings settings-dock">
+            W Docku
+            <input
+              type="checkbox"
+              checked={showDock}
+              onChange={(e) => {
+                setShowDock(e.target.checked)
+                window.api.setSettings({ workStart, showDock: e.target.checked })
               }}
             />
           </label>

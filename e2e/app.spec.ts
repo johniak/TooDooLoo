@@ -199,7 +199,7 @@ test('sidebar pomija weekendy bez danych', async () => {
 
 test('godzina startu pracy jest konfigurowalna i zapisywana', async () => {
   const { app, page, dataDir } = await launch()
-  await page.locator('.settings input').fill('07:30')
+  await page.locator('.settings input[type="time"]').fill('07:30')
   await expect
     .poll(() => {
       try {
@@ -209,6 +209,32 @@ test('godzina startu pracy jest konfigurowalna i zapisywana', async () => {
       }
     })
     .toBe('07:30')
+  await app.close()
+})
+
+test('ukrycie w Docku: checkbox chowa ikonę i zapisuje ustawienie', async () => {
+  const { app, page, dataDir } = await launch()
+  await page.locator('.settings-dock input').uncheck()
+  await expect
+    .poll(() => {
+      try {
+        return JSON.parse(fs.readFileSync(path.join(dataDir, 'settings.json'), 'utf8')).showDock
+      } catch {
+        return null
+      }
+    })
+    .toBe(false)
+  // dock.isVisible() w Electronie kłamie po hide() (znany bug), więc bez asserta na widoczność
+  await page.locator('.settings-dock input').check()
+  await expect
+    .poll(() => {
+      try {
+        return JSON.parse(fs.readFileSync(path.join(dataDir, 'settings.json'), 'utf8')).showDock
+      } catch {
+        return null
+      }
+    })
+    .toBe(true)
   await app.close()
 })
 

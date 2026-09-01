@@ -226,6 +226,17 @@ textarea {
   color-scheme: dark;
 }
 
+.settings-dock {
+  margin-top: 0; /* tylko pierwszy .settings spycha blok ustawień na dół */
+}
+
+.settings-dock input {
+  width: 15px;
+  height: 15px;
+  padding: 0;
+  accent-color: var(--ember);
+}
+
 /* --- panel --- */
 .panel {
   flex: 1;
