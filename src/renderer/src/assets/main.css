@@ -226,7 +226,7 @@ textarea {
   color-scheme: dark;
 }
 
-.settings-dock {
+.settings ~ .settings {
   margin-top: 0; /* tylko pierwszy .settings spycha blok ustawień na dół */
 }
 

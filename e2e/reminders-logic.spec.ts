@@ -1,5 +1,9 @@
 import { test, expect } from '@playwright/test'
-import { dueReminders, todayStr, Todo } from '../src/shared/core'
+import fs from 'fs'
+import os from 'os'
+import path from 'path'
+import { dueReminders, nextCheckpoint, todayStr, Todo } from '../src/shared/core'
+import { addTodo, loadTodos, resumeSession, setDataDir, startTracking, stopTracking } from '../src/shared/store'
 
 const base = (over: Partial<Todo>): Todo => ({
   id: 'x',
@@ -26,6 +30,40 @@ test('dueReminders: interwały wg pilności', () => {
   // 5 minut po powiadomieniu: tylko immediate (3 min) znów due
   const last = new Map(todos.map((t) => [t.id, now.getTime() - 5 * 60_000]))
   expect(dueReminders(todos, now, last).map((t) => t.id)).toEqual(['a'])
+})
+
+test('nextCheckpoint: koniec dnia; start po końcu → jutro; potwierdzenie → +5 min', () => {
+  const at = (h: number, m: number): Date => {
+    const d = new Date()
+    d.setHours(h, m, 0, 0)
+    return d
+  }
+  // start w godzinach pracy → dzisiejszy koniec dnia
+  expect(nextCheckpoint({ start: at(16, 0).toISOString() }, '17:00')).toBe(at(17, 0).getTime())
+  // start po końcu dnia → jutrzejszy koniec (wieczorna praca bez pingów)
+  const tomorrow = at(17, 0)
+  tomorrow.setDate(tomorrow.getDate() + 1)
+  expect(nextCheckpoint({ start: at(20, 0).toISOString() }, '17:00')).toBe(tomorrow.getTime())
+  // po „tak, pracuję" → ping za 5 min
+  expect(
+    nextCheckpoint({ start: at(16, 0).toISOString(), confirmedUntil: at(17, 0).toISOString() }, '17:00')
+  ).toBe(at(17, 5).getTime())
+})
+
+test('resumeSession: wymazuje pauzę checkpointu bez szwu, ale nie ręczny stop', () => {
+  setDataDir(fs.mkdtempSync(path.join(os.tmpdir(), 'toodooloo-resume-')))
+  const t = addTodo({ text: 'x', date: todayStr(), urgency: 'medium' })
+  startTracking(t.id)
+  const cut = new Date().toISOString()
+  stopTracking(cut)
+  resumeSession(t.id, cut)
+  const s = loadTodos()[0].sessions![0]
+  expect(s.end).toBeUndefined() // sesja znowu biegnie, jakby pauzy nie było
+  expect(s.confirmedUntil).toBe(cut)
+  // stop z innym timestampem (ręczny/done) nie daje się wymazać starym checkpointem
+  stopTracking()
+  resumeSession(t.id, cut)
+  expect(loadTodos()[0].sessions![0].end).toBeTruthy()
 })
 
 test('dueReminders: pomija zrobione i inne dni', () => {

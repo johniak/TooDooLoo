@@ -1,6 +1,7 @@
 export type Urgency = 'immediate' | 'high' | 'medium' | 'low' | 'before-work'
 
-export type Session = { start: string; end?: string } // ISO; brak end = timer chodzi
+// ISO; brak end = timer chodzi; confirmedUntil = ostatnie „tak, pracuję" po końcu dnia
+export type Session = { start: string; end?: string; confirmedUntil?: string }
 
 export type Todo = {
   id: string
@@ -74,6 +75,21 @@ export function secondsOnDay(t: Todo, date: string, now: number = Date.now()): n
     const to = Math.min(s.end ? Date.parse(s.end) : now, dayEnd)
     return sum + Math.max(0, to - from) / 1000
   }, 0)
+}
+
+/**
+ * Checkpoint „pracujesz jeszcze?" dla otwartej sesji (epoch ms).
+ * Bez potwierdzeń: pierwszy koniec dnia pracy PO starcie sesji (start po workEnd → jutrzejszy).
+ * Po „tak, pracuję": +5 min od potwierdzenia.
+ */
+export function nextCheckpoint(s: Session, workEnd: string): number {
+  if (s.confirmedUntil) return Date.parse(s.confirmedUntil) + 5 * 60_000
+  const [h, m] = workEnd.split(':').map(Number)
+  const start = new Date(Date.parse(s.start))
+  const end = new Date(start)
+  end.setHours(h, m, 0, 0)
+  if (end.getTime() <= start.getTime()) end.setDate(end.getDate() + 1)
+  return end.getTime()
 }
 
 /** 1:23:45 / 4:56 */

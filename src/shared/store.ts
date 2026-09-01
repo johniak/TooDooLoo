@@ -90,13 +90,22 @@ export function startTracking(id: string): Todo | null {
   return todo
 }
 
-/** Zamyka otwartą sesję, gdziekolwiek jest. */
-export function stopTracking(): void {
-  const now = new Date().toISOString()
+/** Zamyka otwartą sesję, gdziekolwiek jest; endIso pozwala ciąć wstecznie (checkpoint zaspany). */
+export function stopTracking(endIso: string = new Date().toISOString()): void {
   const todos = loadTodos()
   let changed = false
-  for (const t of todos) changed = closeOpenSession(t, now) || changed
+  for (const t of todos) changed = closeOpenSession(t, endIso) || changed
   if (changed) saveTodos(todos)
+}
+
+/** „Tak, pracuję": wymazuje pauzę checkpointu — sesja biegnie dalej bez szwu. */
+export function resumeSession(id: string, checkpointIso: string): void {
+  const todos = loadTodos()
+  const session = todos.find((t) => t.id === id)?.sessions?.at(-1)
+  if (!session || session.end !== checkpointIso) return // w międzyczasie stop/done — nie ruszamy
+  delete session.end
+  session.confirmedUntil = checkpointIso
+  saveTodos(todos)
 }
 
 export function deleteTodo(id: string): void {
@@ -105,8 +114,8 @@ export function deleteTodo(id: string): void {
 
 // --- settings ---
 
-export type Settings = { workStart: string; showDock: boolean }
-const DEFAULT_SETTINGS: Settings = { workStart: '09:00', showDock: true }
+export type Settings = { workStart: string; workEnd: string; showDock: boolean }
+const DEFAULT_SETTINGS: Settings = { workStart: '09:00', workEnd: '17:00', showDock: true }
 const settingsFile = (): string => path.join(dataDir(), 'settings.json')
 
 export function loadSettings(): Settings {

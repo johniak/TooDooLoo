@@ -1,4 +1,4 @@
-import { app, shell, BrowserWindow, ipcMain, Tray, Menu, nativeImage, powerMonitor } from 'electron'
+import { app, shell, BrowserWindow, ipcMain, Tray, Menu, nativeImage } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
@@ -174,12 +174,7 @@ app.whenReady().then(() => {
   updateTray()
   applyDock(storage.loadSettings().showDock)
   createWindow()
-
-  // uśpienie laptopa zamyka sesję — inaczej zapomniany timer naliczy noc
-  powerMonitor.on('suspend', () => {
-    storage.stopTracking()
-    updateTray()
-  })
+  // uśpienie NIE tnie sesji — tnie tylko checkpoint końca dnia (reminders), także wstecznie po wybudzeniu
 
   app.on('activate', function () {
     if (BrowserWindow.getAllWindows().length === 0) createWindow()

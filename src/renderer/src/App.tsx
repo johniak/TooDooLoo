@@ -28,10 +28,12 @@ function dayList(summary: Record<string, DaySummary>): string[] {
 function DayFuse({
   todos,
   workStart,
+  workEnd,
   date
 }: {
   todos: Todo[]
   workStart: string
+  workEnd: string
   date: string
 }): React.JSX.Element {
   const isToday = date === todayStr()
@@ -42,10 +44,13 @@ function DayFuse({
   }, [])
   let pct = 0
   if (isToday) {
-    const [h, m] = workStart.split(':').map(Number)
+    const toMin = (t: string): number => {
+      const [h, m] = t.split(':').map(Number)
+      return h * 60 + m
+    }
     const now = new Date()
-    // ponytail: 8h dzień pracy, konfiguracja końca jak będzie potrzebna
-    pct = Math.min(1, Math.max(0, (now.getHours() * 60 + now.getMinutes() - (h * 60 + m)) / 480))
+    const span = Math.max(1, toMin(workEnd) - toMin(workStart))
+    pct = Math.min(1, Math.max(0, (now.getHours() * 60 + now.getMinutes() - toMin(workStart)) / span))
   }
   const done = todos.filter((t) => t.done).length
   if (!isToday && todos.length === 0) return <></>
@@ -83,11 +88,13 @@ export default function App(): React.JSX.Element {
   const [view, setView] = useState<'day' | 'notes'>('day')
   const [highlightId, setHighlightId] = useState<string | null>(null)
   const [workStart, setWorkStart] = useState('09:00')
+  const [workEnd, setWorkEnd] = useState('17:00')
   const [showDock, setShowDock] = useState(true)
 
   useEffect(() => {
     window.api.getSettings().then((s) => {
       setWorkStart(s.workStart)
+      setWorkEnd(s.workEnd)
       setShowDock(s.showDock)
     })
     return window.api.onOpenTodo(({ id, date }) => {
@@ -163,14 +170,25 @@ export default function App(): React.JSX.Element {
             <span className="day-label">▤ Notatki</span>
             {realNotes.length > 0 && <span className="badge">{realNotes.length}</span>}
           </button>
-          <label className="settings">
+          <label className="settings settings-start">
             Start pracy
             <input
               type="time"
               value={workStart}
               onChange={(e) => {
                 setWorkStart(e.target.value)
-                window.api.setSettings({ workStart: e.target.value, showDock })
+                window.api.setSettings({ workStart: e.target.value, workEnd, showDock })
+              }}
+            />
+          </label>
+          <label className="settings settings-end">
+            Koniec pracy
+            <input
+              type="time"
+              value={workEnd}
+              onChange={(e) => {
+                setWorkEnd(e.target.value)
+                window.api.setSettings({ workStart, workEnd: e.target.value, showDock })
               }}
             />
           </label>
@@ -181,7 +199,7 @@ export default function App(): React.JSX.Element {
               checked={showDock}
               onChange={(e) => {
                 setShowDock(e.target.checked)
-                window.api.setSettings({ workStart, showDock: e.target.checked })
+                window.api.setSettings({ workStart, workEnd, showDock: e.target.checked })
               }}
             />
           </label>
@@ -200,7 +218,7 @@ export default function App(): React.JSX.Element {
                 <>
                   <header className="day-header">
                     <h2 className="panel-title">{dayLabel(selected)}</h2>
-                    <DayFuse todos={todos} workStart={workStart} date={selected} />
+                    <DayFuse todos={todos} workStart={workStart} workEnd={workEnd} date={selected} />
                   </header>
                   <Todos
                     date={selected}

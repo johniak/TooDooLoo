@@ -114,6 +114,62 @@ test('tracking czasu: start/stop, jeden timer naraz, done stopuje', async () => 
   await app.close()
 })
 
+test('checkpoint na żywo: sesja pauzuje o koniec pracy i pyta „pracujesz jeszcze?"', async () => {
+  const now = new Date()
+  const p = (n: number): string => String(n).padStart(2, '0')
+  const workEnd = `${p(now.getHours())}:${p(now.getMinutes())}` // koniec pracy = teraz → checkpoint w oknie „na żywo"
+  const due = new Date(now)
+  due.setSeconds(0, 0)
+  const start = new Date(now.getTime() - 3 * 3600_000)
+  const notifyFile = path.join(
+    fs.mkdtempSync(path.join(require('os').tmpdir(), 'toodooloo-cp-')),
+    'notify.log'
+  )
+  const { app, dataDir } = await launch({
+    seedTodos: [
+      { text: 'Wieczorny', date: daysAgo(0), sessions: [{ start: start.toISOString() }] }
+    ],
+    settings: { workStart: '09:00', workEnd, showDock: true },
+    env: { TOODOOLOO_TICK_MS: '200', TOODOOLOO_NOTIFY_FILE: notifyFile }
+  })
+  await expect
+    .poll(() => (fs.existsSync(notifyFile) ? fs.readFileSync(notifyFile, 'utf8') : ''), {
+      timeout: 10_000
+    })
+    .toContain('checkpoint:Wieczorny')
+  expect(
+    JSON.parse(fs.readFileSync(path.join(dataDir, 'todos.json'), 'utf8'))[0].sessions[0].end
+  ).toBe(due.toISOString())
+  await app.close()
+})
+
+test('checkpoint zaspany: sesja ucięta wstecznie o koniec dnia, bez pytania', async () => {
+  const start = new Date()
+  start.setDate(start.getDate() - 1)
+  start.setHours(10, 0, 0, 0)
+  const cut = new Date(start)
+  cut.setHours(17, 0, 0, 0) // domyślny workEnd
+  const notifyFile = path.join(
+    fs.mkdtempSync(path.join(require('os').tmpdir(), 'toodooloo-cpr-')),
+    'notify.log'
+  )
+  const { app, dataDir } = await launch({
+    seedTodos: [{ text: 'Nocny', date: daysAgo(1), sessions: [{ start: start.toISOString() }] }],
+    env: { TOODOOLOO_TICK_MS: '200', TOODOOLOO_NOTIFY_FILE: notifyFile }
+  })
+  await expect
+    .poll(
+      () => JSON.parse(fs.readFileSync(path.join(dataDir, 'todos.json'), 'utf8'))[0].sessions[0].end,
+      { timeout: 10_000 }
+    )
+    .toBe(cut.toISOString())
+  // zaspany checkpoint nie pyta — play jest zawsze manualny
+  expect(fs.existsSync(notifyFile) ? fs.readFileSync(notifyFile, 'utf8') : '').not.toContain(
+    'checkpoint:'
+  )
+  await app.close()
+})
+
 test('kolor tożsamości: ten sam na todosie dziś i na jego duchu', async () => {
   const origin = prevWorkday()
   const { app, page } = await launch({ seedTodos: [{ text: 'Kameleon', date: origin }] })
@@ -242,16 +298,17 @@ test('sidebar pomija weekendy bez danych', async () => {
 
 test('godzina startu pracy jest konfigurowalna i zapisywana', async () => {
   const { app, page, dataDir } = await launch()
-  await page.locator('.settings input[type="time"]').fill('07:30')
+  await page.locator('.settings-start input').fill('07:30')
+  await page.locator('.settings-end input').fill('16:30')
   await expect
     .poll(() => {
       try {
-        return JSON.parse(fs.readFileSync(path.join(dataDir, 'settings.json'), 'utf8')).workStart
+        return JSON.parse(fs.readFileSync(path.join(dataDir, 'settings.json'), 'utf8'))
       } catch {
-        return ''
+        return {}
       }
     })
-    .toBe('07:30')
+    .toMatchObject({ workStart: '07:30', workEnd: '16:30' })
   await app.close()
 })
 

@@ -5,9 +5,16 @@ import path from 'path'
 import { Todo } from '../src/shared/core'
 
 export async function launch(
-  opts: { seedTodos?: Partial<Todo>[]; env?: Record<string, string> } = {}
+  opts: {
+    seedTodos?: Partial<Todo>[]
+    env?: Record<string, string>
+    settings?: Record<string, unknown>
+  } = {}
 ): Promise<{ app: ElectronApplication; page: Page; dataDir: string }> {
   const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'toodooloo-'))
+  if (opts.settings) {
+    fs.writeFileSync(path.join(dataDir, 'settings.json'), JSON.stringify(opts.settings))
+  }
   if (opts.seedTodos) {
     const todos = opts.seedTodos.map((t, i) => ({
       id: `seed-${i}`,
