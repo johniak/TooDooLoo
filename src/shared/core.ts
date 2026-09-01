@@ -92,6 +92,72 @@ export function nextCheckpoint(s: Session, workEnd: string): number {
   return end.getTime()
 }
 
+// --- timeline ---
+
+export type TimelineBlock = {
+  todoId: string
+  text: string
+  date: string // YYYY-MM-DD — kolumna dnia
+  startMin: number // minuty od północy
+  endMin: number
+  running: boolean
+  lane: number // slot w klastrze nakładających się bloków
+  lanes: number // liczba slotów w klastrze
+}
+
+/** Klasyczny layout kalendarza: klastry przecinających się bloków, sloty wewnątrz klastra. */
+function layoutLanes(blocks: TimelineBlock[]): void {
+  const sorted = [...blocks].sort((a, b) => a.startMin - b.startMin || b.endMin - a.endMin)
+  let cluster: TimelineBlock[] = []
+  let laneEnds: number[] = []
+  let clusterEnd = -Infinity
+  const closeCluster = (): void => {
+    for (const b of cluster) b.lanes = laneEnds.length
+    cluster = []
+    laneEnds = []
+  }
+  for (const b of sorted) {
+    if (b.startMin >= clusterEnd) closeCluster()
+    clusterEnd = Math.max(clusterEnd, b.endMin)
+    const lane = laneEnds.findIndex((end) => end <= b.startMin)
+    b.lane = lane === -1 ? laneEnds.length : lane
+    laneEnds[b.lane] = b.endMin
+    cluster.push(b)
+  }
+  closeCluster()
+}
+
+/** Sesje wszystkich todosów pocięte granicami dób na bloki timeline'u dla podanych dni. */
+export function weekBlocks(todos: Todo[], dates: string[], now: number = Date.now()): TimelineBlock[] {
+  const all: TimelineBlock[] = []
+  for (const date of dates) {
+    const [y, m, d] = date.split('-').map(Number)
+    const dayStart = new Date(y, m - 1, d).getTime()
+    const dayEnd = dayStart + 24 * 3600_000
+    const day: TimelineBlock[] = []
+    for (const t of todos) {
+      for (const s of t.sessions ?? []) {
+        const from = Math.max(Date.parse(s.start), dayStart)
+        const to = Math.min(s.end ? Date.parse(s.end) : now, dayEnd)
+        if (to <= from) continue
+        day.push({
+          todoId: t.id,
+          text: t.text,
+          date,
+          startMin: (from - dayStart) / 60_000,
+          endMin: (to - dayStart) / 60_000,
+          running: !s.end && now >= dayStart && now < dayEnd,
+          lane: 0,
+          lanes: 1
+        })
+      }
+    }
+    layoutLanes(day)
+    all.push(...day)
+  }
+  return all
+}
+
 /** 1:23:45 / 4:56 */
 export function fmtClock(sec: number): string {
   const s = Math.floor(sec)

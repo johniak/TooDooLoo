@@ -5,6 +5,7 @@ import Todos from './components/Todos'
 import Notes from './components/Notes'
 import DayNote from './components/DayNote'
 import Settings, { SettingsValues } from './components/Settings'
+import Timeline from './components/Timeline'
 
 // dni robocze: 7 wstecz, 5 wprzód; weekendy tylko gdy mają dane
 function dayList(summary: Record<string, DaySummary>): string[] {
@@ -86,7 +87,7 @@ export default function App(): React.JSX.Element {
   const [todos, setTodos] = useState<Todo[]>([])
   const [notes, setNotes] = useState<NoteMeta[]>([])
   const [openNoteId, setOpenNoteId] = useState<string | null>(null)
-  const [view, setView] = useState<'day' | 'notes' | 'settings'>('day')
+  const [view, setView] = useState<'day' | 'notes' | 'settings' | 'timeline'>('day')
   const [highlightId, setHighlightId] = useState<string | null>(null)
   const [workStart, setWorkStart] = useState('09:00')
   const [workEnd, setWorkEnd] = useState('17:00')
@@ -162,6 +163,15 @@ export default function App(): React.JSX.Element {
             })}
           </div>
           <button
+            className={`day timeline-link ${view === 'timeline' ? 'day-active' : ''}`}
+            onClick={() => {
+              setView('timeline')
+              setOpenNoteId(null)
+            }}
+          >
+            <span className="day-label">▦ Oś czasu</span>
+          </button>
+          <button
             className={`day notes-link ${view === 'notes' ? 'day-active' : ''}`}
             onClick={() => {
               setView('notes')
@@ -216,6 +226,17 @@ export default function App(): React.JSX.Element {
                   openNoteId={openNoteId}
                   onOpen={setOpenNoteId}
                   onChange={reload}
+                />
+              ) : view === 'timeline' ? (
+                <Timeline
+                  workStart={workStart}
+                  workEnd={workEnd}
+                  onOpenTodo={(id, date) => {
+                    setSelected(date)
+                    setView('day')
+                    setHighlightId(id)
+                    setTimeout(() => setHighlightId(null), 2500)
+                  }}
                 />
               ) : (
                 <Settings

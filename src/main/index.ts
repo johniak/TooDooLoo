@@ -106,6 +106,7 @@ function registerIpc(): void {
       (t) => t.date === date || (t.rolledFrom && t.rolledFrom <= date && date < t.date)
     )
   )
+  ipcMain.handle('todos:all', () => storage.loadTodos())
   ipcMain.handle('todos:add', (_e, input) => storage.addTodo(input))
   ipcMain.handle('todos:update', (_e, id: string, patch) => storage.updateTodo(id, patch))
   ipcMain.handle('todos:delete', (_e, id: string) => storage.deleteTodo(id))

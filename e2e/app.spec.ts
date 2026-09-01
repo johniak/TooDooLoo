@@ -170,6 +170,43 @@ test('checkpoint zaspany: sesja ucięta wstecznie o koniec dnia, bez pytania', a
   await app.close()
 })
 
+test('oś czasu: bloki sesji, cięcie przez północ, nakładki w slotach, klik → todos', async () => {
+  const iso = (date: string, h: number, m = 0): string => {
+    const [y, mo, d] = date.split('-').map(Number)
+    return new Date(y, mo - 1, d, h, m).toISOString()
+  }
+  // sesja przez północ w obrębie bieżącego tygodnia (niedziela → bierzemy sobotę jako start)
+  const spanDay = new Date().getDay() === 0 ? daysAgo(1) : daysAgo(0)
+  const nextDay = ((): string => {
+    const [y, m, d] = spanDay.split('-').map(Number)
+    const n = new Date(y, m - 1, d + 1)
+    return `${n.getFullYear()}-${String(n.getMonth() + 1).padStart(2, '0')}-${String(n.getDate()).padStart(2, '0')}`
+  })()
+  const { app, page } = await launch({
+    seedTodos: [
+      { text: 'Nocny marek', date: daysAgo(0), sessions: [{ start: iso(spanDay, 22), end: iso(nextDay, 1, 30) }] },
+      { text: 'Ranny A', date: daysAgo(0), sessions: [{ start: iso(daysAgo(0), 10), end: iso(daysAgo(0), 11) }] },
+      { text: 'Ranny B', date: daysAgo(0), sessions: [{ start: iso(daysAgo(0), 10, 30), end: iso(daysAgo(0), 11, 30) }] }
+    ]
+  })
+  await page.locator('.timeline-link').click()
+
+  await expect(page.locator('.tl-block')).toHaveCount(4)
+  await expect(page.locator('.tl-block[title*="Nocny marek"]')).toHaveCount(2) // pocięty północą
+  await expect(page.locator('.tl-total')).toContainText('h') // suma tygodnia
+
+  // nakładka: dwa sloty obok siebie, ta sama szerokość, inne x
+  const a = (await page.locator('.tl-block[title*="Ranny A"]').boundingBox())!
+  const b = (await page.locator('.tl-block[title*="Ranny B"]').boundingBox())!
+  expect(a.x).not.toBe(b.x)
+  expect(Math.abs(a.width - b.width)).toBeLessThan(2)
+
+  // klik w blok prowadzi do todosa
+  await page.locator('.tl-block[title*="Ranny A"]').click()
+  await expect(page.locator('.todo-flash')).toContainText('Ranny A')
+  await app.close()
+})
+
 test('kolor tożsamości: ten sam na todosie dziś i na jego duchu', async () => {
   const origin = prevWorkday()
   const { app, page } = await launch({ seedTodos: [{ text: 'Kameleon', date: origin }] })

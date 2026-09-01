@@ -3,6 +3,7 @@ import type { Todo, NoteMeta, DaySummary, Urgency } from '../shared/core'
 
 export const api = {
   listTodos: (date: string): Promise<Todo[]> => ipcRenderer.invoke('todos:list', date),
+  listAllTodos: (): Promise<Todo[]> => ipcRenderer.invoke('todos:all'),
   addTodo: (input: { text: string; date: string; urgency: Urgency; url?: string }): Promise<Todo> =>
     ipcRenderer.invoke('todos:add', input),
   updateTodo: (id: string, patch: Partial<Todo>): Promise<Todo | null> =>
