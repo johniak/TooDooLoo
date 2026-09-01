@@ -34,6 +34,25 @@ type Drag = {
 const hourOf = (t: string): number => Number(t.split(':')[0])
 const p = (n: number): string => String(n).padStart(2, '0')
 
+const SNAP_MS = SNAP_MIN * 60_000
+const snap = (ms: number): number => Math.round(ms / SNAP_MS) * SNAP_MS
+
+/** Nowe start/koniec sesji dla trwającego dragu — wynik snapowany do siatki 5 min. */
+function dragPatch(s: Session, d: Drag): { start?: string; end?: string } {
+  const patch: { start?: string; end?: string } = {}
+  if (d.mode === 'move') {
+    const shift = d.dayDelta * 86_400_000 + d.deltaMin * 60_000
+    const newStart = snap(Date.parse(s.start) + shift)
+    patch.start = new Date(newStart).toISOString()
+    if (s.end) patch.end = new Date(Date.parse(s.end) + (newStart - Date.parse(s.start))).toISOString()
+  } else if (d.mode === 'start') {
+    patch.start = new Date(snap(Date.parse(s.start) + d.deltaMin * 60_000)).toISOString()
+  } else if (s.end) {
+    patch.end = new Date(snap(Date.parse(s.end) + d.deltaMin * 60_000)).toISOString()
+  }
+  return patch
+}
+
 function weekDates(offset: number): string[] {
   const d = new Date()
   d.setDate(d.getDate() - ((d.getDay() + 6) % 7) + offset * 7) // poniedziałek tygodnia
@@ -207,22 +226,12 @@ export default function Timeline({ workStart, workEnd, onOpenTodo }: Props): Rea
   // podgląd przeciągania: sesja przesunięta lokalnie, zanim commit trafi na dysk
   const previewTodos = useMemo(() => {
     if (!drag?.moved) return todos
-    const shift = drag.dayDelta * 86_400_000 + drag.deltaMin * 60_000
     return todos.map((t) =>
       t.id !== drag.todoId
         ? t
         : {
             ...t,
-            sessions: t.sessions!.map((s, i) => {
-              if (i !== drag.idx) return s
-              const ns = { ...s }
-              if (drag.mode !== 'end') ns.start = new Date(Date.parse(s.start) + shift).toISOString()
-              if (drag.mode !== 'start' && s.end)
-                ns.end = new Date(
-                  Date.parse(s.end) + (drag.mode === 'move' ? shift : drag.deltaMin * 60_000)
-                ).toISOString()
-              return ns
-            })
+            sessions: t.sessions!.map((s, i) => (i !== drag.idx ? s : { ...s, ...dragPatch(s, drag) }))
           }
     )
   }, [todos, drag])
@@ -250,17 +259,9 @@ export default function Timeline({ workStart, workEnd, onOpenTodo }: Props): Rea
   const nowMin = now.getHours() * 60 + now.getMinutes()
 
   const commitDrag = async (d: Drag): Promise<void> => {
-    const t = todos.find((x) => x.id === d.todoId)
-    const s = t?.sessions?.[d.idx]
+    const s = todos.find((x) => x.id === d.todoId)?.sessions?.[d.idx]
     if (!s) return
-    const shift = d.dayDelta * 86_400_000 + d.deltaMin * 60_000
-    const patch: { start?: string; end?: string } = {}
-    if (d.mode !== 'end') patch.start = new Date(Date.parse(s.start) + shift).toISOString()
-    if (d.mode !== 'start' && s.end)
-      patch.end = new Date(
-        Date.parse(s.end) + (d.mode === 'move' ? shift : d.deltaMin * 60_000)
-      ).toISOString()
-    await window.api.updateSession(d.todoId, d.idx, patch)
+    await window.api.updateSession(d.todoId, d.idx, dragPatch(s, d))
     load()
   }
 
@@ -348,7 +349,7 @@ export default function Timeline({ workStart, workEnd, onOpenTodo }: Props): Rea
                         const colW = grid ? (grid.clientWidth - GUTTER) / visible.length : 1
                         setDrag({
                           ...drag,
-                          deltaMin: Math.round((dy / PX_PER_HOUR) * 60 / SNAP_MIN) * SNAP_MIN,
+                          deltaMin: (dy / PX_PER_HOUR) * 60, // surowa delta — snap robi dragPatch na wyniku
                           dayDelta: drag.mode === 'move' ? Math.round(dx / colW) : 0,
                           moved: drag.moved || Math.abs(dy) > 3 || Math.abs(dx) > 3
                         })
@@ -369,6 +370,8 @@ export default function Timeline({ workStart, workEnd, onOpenTodo }: Props): Rea
                         setEditing({ todoId: b.todoId, idx: b.sessionIdx })
                       }}
                     >
+                      {(b.isStart || b.running) && <span className="tl-handle tl-handle-top" />}
+                      {b.isEnd && !b.running && <span className="tl-handle tl-handle-bottom" />}
                       {h >= 24 && (
                         <span className="tl-block-label" style={{ color }}>
                           {b.running && <span className="tl-live-dot" />}

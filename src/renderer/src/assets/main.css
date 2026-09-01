@@ -296,8 +296,29 @@ textarea {
   padding: 3px 6px;
   overflow: hidden;
   text-align: left;
-  cursor: pointer;
+  cursor: grab;
   transition: filter 0.15s;
+}
+
+.tl-block:active {
+  cursor: grabbing;
+}
+
+/* uchwyty rozciągania na krawędziach — strefa zgodna z detekcją w onPointerDown (7px) */
+.tl-handle {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 7px;
+  cursor: ns-resize;
+}
+
+.tl-handle-top {
+  top: 0;
+}
+
+.tl-handle-bottom {
+  bottom: 0;
 }
 
 .tl-block-label {

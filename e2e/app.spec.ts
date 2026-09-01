@@ -238,7 +238,8 @@ test('oś czasu: przeciągnięcie bloku przesuwa sesję o godzinę (snap 5 min)'
   }
   const { app, page, dataDir } = await launch({
     seedTodos: [
-      { text: 'Przesuwany', date: daysAgo(0), sessions: [{ start: iso(10), end: iso(11) }] }
+      // start poza siatką (10:02) — po dragu ma wylądować równo na 5 min
+      { text: 'Przesuwany', date: daysAgo(0), sessions: [{ start: iso(10, 2), end: iso(11, 2) }] }
     ]
   })
   await page.locator('.timeline-link').click()
@@ -254,7 +255,7 @@ test('oś czasu: przeciągnięcie bloku przesuwa sesję o godzinę (snap 5 min)'
       const todos = JSON.parse(fs.readFileSync(path.join(dataDir, 'todos.json'), 'utf8'))
       return todos[0].sessions[0]
     })
-    .toMatchObject({ start: iso(11), end: iso(12) })
+    .toMatchObject({ start: iso(11), end: iso(12) }) // snap do siatki, długość zachowana
   await app.close()
 })
 
