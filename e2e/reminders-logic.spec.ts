@@ -54,7 +54,8 @@ test('resumeSession: wymazuje pauzę checkpointu bez szwu, ale nie ręczny stop'
   setDataDir(fs.mkdtempSync(path.join(os.tmpdir(), 'toodooloo-resume-')))
   const t = addTodo({ text: 'x', date: todayStr(), urgency: 'medium' })
   startTracking(t.id)
-  const cut = new Date().toISOString()
+  // celowo inna milisekunda niż późniejszy ręczny stop — guard rozróżnia po timestampie
+  const cut = new Date(Date.now() - 1000).toISOString()
   stopTracking(cut)
   resumeSession(t.id, cut)
   const s = loadTodos()[0].sessions![0]

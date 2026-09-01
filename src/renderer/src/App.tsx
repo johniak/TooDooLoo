@@ -8,6 +8,42 @@ import Settings, { SettingsValues } from './components/Settings'
 import Timeline from './components/Timeline'
 import Reports from './components/Reports'
 
+// ikonki stopki sidebara — jedna kreska, currentColor, spójne z Ink & Ember
+const ICON: Record<'timeline' | 'reports' | 'notes' | 'settings', React.JSX.Element> = {
+  timeline: (
+    <svg className="side-ico" viewBox="0 0 16 16" aria-hidden="true">
+      <rect x="1.75" y="2.25" width="12.5" height="11.5" rx="2" fill="none" stroke="currentColor" strokeWidth="1.4" />
+      <rect x="4.2" y="4.8" width="2.8" height="4.4" rx="0.8" fill="currentColor" />
+      <rect x="8.9" y="6.8" width="2.8" height="4.4" rx="0.8" fill="currentColor" />
+    </svg>
+  ),
+  reports: (
+    <svg className="side-ico" viewBox="0 0 16 16" aria-hidden="true">
+      <rect x="2" y="8.2" width="3" height="5.6" rx="0.9" fill="currentColor" />
+      <rect x="6.5" y="3.2" width="3" height="10.6" rx="0.9" fill="currentColor" />
+      <rect x="11" y="5.8" width="3" height="8" rx="0.9" fill="currentColor" />
+    </svg>
+  ),
+  notes: (
+    <svg className="side-ico" viewBox="0 0 16 16" aria-hidden="true">
+      <rect x="2.75" y="1.75" width="10.5" height="12.5" rx="2" fill="none" stroke="currentColor" strokeWidth="1.4" />
+      <line x1="5.4" y1="5.4" x2="10.6" y2="5.4" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+      <line x1="5.4" y1="8" x2="10.6" y2="8" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+      <line x1="5.4" y1="10.6" x2="8.4" y2="10.6" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+    </svg>
+  ),
+  settings: (
+    <svg className="side-ico" viewBox="0 0 16 16" aria-hidden="true">
+      <line x1="2" y1="4.2" x2="14" y2="4.2" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+      <line x1="2" y1="8" x2="14" y2="8" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+      <line x1="2" y1="11.8" x2="14" y2="11.8" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+      <circle cx="10.2" cy="4.2" r="1.9" fill="var(--surface-2, #211B15)" stroke="currentColor" strokeWidth="1.4" />
+      <circle cx="5.2" cy="8" r="1.9" fill="var(--surface-2, #211B15)" stroke="currentColor" strokeWidth="1.4" />
+      <circle cx="11.2" cy="11.8" r="1.9" fill="var(--surface-2, #211B15)" stroke="currentColor" strokeWidth="1.4" />
+    </svg>
+  )
+}
+
 // dni robocze: 7 wstecz, 5 wprzód; weekendy tylko gdy mają dane
 function dayList(summary: Record<string, DaySummary>): string[] {
   const dates = new Set(Object.keys(summary))
@@ -170,7 +206,7 @@ export default function App(): React.JSX.Element {
               setOpenNoteId(null)
             }}
           >
-            <span className="day-label">▦ Oś czasu</span>
+            <span className="day-label">{ICON.timeline} Oś czasu</span>
           </button>
           <button
             className={`day reports-link ${view === 'reports' ? 'day-active' : ''}`}
@@ -179,7 +215,7 @@ export default function App(): React.JSX.Element {
               setOpenNoteId(null)
             }}
           >
-            <span className="day-label">▥ Raport</span>
+            <span className="day-label">{ICON.reports} Raport</span>
           </button>
           <button
             className={`day notes-link ${view === 'notes' ? 'day-active' : ''}`}
@@ -188,7 +224,7 @@ export default function App(): React.JSX.Element {
               setOpenNoteId(null)
             }}
           >
-            <span className="day-label">▤ Notatki</span>
+            <span className="day-label">{ICON.notes} Notatki</span>
             {realNotes.length > 0 && <span className="badge">{realNotes.length}</span>}
           </button>
           <button
@@ -198,7 +234,7 @@ export default function App(): React.JSX.Element {
               setOpenNoteId(null)
             }}
           >
-            <span className="day-label">⚙ Ustawienia</span>
+            <span className="day-label">{ICON.settings} Ustawienia</span>
           </button>
         </aside>
         <main className="panel">

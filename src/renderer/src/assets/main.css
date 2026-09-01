@@ -183,6 +183,14 @@ textarea {
   opacity: 0.8;
 }
 
+.side-ico {
+  width: 15px;
+  height: 15px;
+  vertical-align: -3px;
+  margin-right: 8px;
+  opacity: 0.85;
+}
+
 .timeline-link {
   margin-top: auto; /* spycha stopkę sidebara na dół */
   width: 100%;
