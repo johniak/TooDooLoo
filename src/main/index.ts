@@ -72,13 +72,14 @@ function createTray(): void {
   tray = new Tray(nativeImage.createEmpty())
   tray.setTitle('✓')
   tray.setToolTip('TooDooLoo')
-  tray.setContextMenu(
-    Menu.buildFromTemplate([
-      { label: 'Pokaż TooDooLoo', click: showWindow },
-      { type: 'separator' },
-      { label: 'Zakończ', click: () => app.quit() }
-    ])
-  )
+  // klik otwiera okno; menu tylko pod prawym przyciskiem (setContextMenu zjadałby eventy kliku)
+  const menu = Menu.buildFromTemplate([
+    { label: 'Pokaż TooDooLoo', click: showWindow },
+    { type: 'separator' },
+    { label: 'Zakończ', click: () => app.quit() }
+  ])
+  tray.on('click', showWindow)
+  tray.on('right-click', () => tray.popUpContextMenu(menu))
 }
 
 function registerIpc(): void {
