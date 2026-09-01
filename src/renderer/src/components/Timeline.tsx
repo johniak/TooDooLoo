@@ -53,7 +53,7 @@ function dragPatch(s: Session, d: Drag): { start?: string; end?: string } {
   return patch
 }
 
-function weekDates(offset: number): string[] {
+export function weekDates(offset: number): string[] {
   const d = new Date()
   d.setDate(d.getDate() - ((d.getDay() + 6) % 7) + offset * 7) // poniedziałek tygodnia
   return [...Array(7)].map((_, i) => {
@@ -63,7 +63,7 @@ function weekDates(offset: number): string[] {
   })
 }
 
-const shortDate = (date: string): string => {
+export const shortDate = (date: string): string => {
   const [, m, d] = date.split('-')
   return `${d}.${m}`
 }

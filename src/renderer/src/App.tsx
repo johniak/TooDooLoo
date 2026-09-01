@@ -6,6 +6,7 @@ import Notes from './components/Notes'
 import DayNote from './components/DayNote'
 import Settings, { SettingsValues } from './components/Settings'
 import Timeline from './components/Timeline'
+import Reports from './components/Reports'
 
 // dni robocze: 7 wstecz, 5 wprzód; weekendy tylko gdy mają dane
 function dayList(summary: Record<string, DaySummary>): string[] {
@@ -87,7 +88,7 @@ export default function App(): React.JSX.Element {
   const [todos, setTodos] = useState<Todo[]>([])
   const [notes, setNotes] = useState<NoteMeta[]>([])
   const [openNoteId, setOpenNoteId] = useState<string | null>(null)
-  const [view, setView] = useState<'day' | 'notes' | 'settings' | 'timeline'>('day')
+  const [view, setView] = useState<'day' | 'notes' | 'settings' | 'timeline' | 'reports'>('day')
   const [highlightId, setHighlightId] = useState<string | null>(null)
   const [workStart, setWorkStart] = useState('09:00')
   const [workEnd, setWorkEnd] = useState('17:00')
@@ -172,6 +173,15 @@ export default function App(): React.JSX.Element {
             <span className="day-label">▦ Oś czasu</span>
           </button>
           <button
+            className={`day reports-link ${view === 'reports' ? 'day-active' : ''}`}
+            onClick={() => {
+              setView('reports')
+              setOpenNoteId(null)
+            }}
+          >
+            <span className="day-label">▥ Raport</span>
+          </button>
+          <button
             className={`day notes-link ${view === 'notes' ? 'day-active' : ''}`}
             onClick={() => {
               setView('notes')
@@ -227,17 +237,20 @@ export default function App(): React.JSX.Element {
                   onOpen={setOpenNoteId}
                   onChange={reload}
                 />
-              ) : view === 'timeline' ? (
-                <Timeline
-                  workStart={workStart}
-                  workEnd={workEnd}
-                  onOpenTodo={(id, date) => {
+              ) : view === 'timeline' || view === 'reports' ? (
+                (() => {
+                  const openTodo = (id: string, date: string): void => {
                     setSelected(date)
                     setView('day')
                     setHighlightId(id)
                     setTimeout(() => setHighlightId(null), 2500)
-                  }}
-                />
+                  }
+                  return view === 'timeline' ? (
+                    <Timeline workStart={workStart} workEnd={workEnd} onOpenTodo={openTodo} />
+                  ) : (
+                    <Reports onOpenTodo={openTodo} />
+                  )
+                })()
               ) : (
                 <Settings
                   values={{ workStart, workEnd, showDock }}

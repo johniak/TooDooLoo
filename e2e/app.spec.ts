@@ -259,6 +259,31 @@ test('oś czasu: przeciągnięcie bloku przesuwa sesję o godzinę (snap 5 min)'
   await app.close()
 })
 
+test('raport: słupki dni, legenda zadań z sumami, log sesji, klik → todos', async () => {
+  const iso = (h: number, m = 0): string => {
+    const [y, mo, d] = daysAgo(0).split('-').map(Number)
+    return new Date(y, mo - 1, d, h, m).toISOString()
+  }
+  const { app, page } = await launch({
+    seedTodos: [
+      { text: 'Raportowy', date: daysAgo(0), sessions: [{ start: iso(9), end: iso(11) }] },
+      { text: 'Drugi', date: daysAgo(0), sessions: [{ start: iso(12), end: iso(12, 30) }] }
+    ]
+  })
+  await page.locator('.reports-link').click()
+
+  await expect(page.locator('.rep-seg')).toHaveCount(2) // dwa segmenty w słupku dzisiaj
+  await expect(page.locator('.rep-day-total')).toHaveText('2:30')
+  await expect(page.locator('.rep-task', { hasText: 'Raportowy' })).toContainText('2:00')
+  await expect(page.locator('.rep-summary-total')).toHaveText('2:30')
+  await expect(page.locator('.rep-log-head', { hasText: 'Dzisiaj' })).toBeVisible()
+  await expect(page.locator('.rep-row')).toHaveCount(2)
+
+  await page.locator('.rep-row', { hasText: 'Raportowy' }).click()
+  await expect(page.locator('.todo-flash')).toContainText('Raportowy')
+  await app.close()
+})
+
 test('kolor zadania: ręczny wybór z palety i powrót do automatu', async () => {
   const { app, page, dataDir } = await launch({
     seedTodos: [{ text: 'Malowany', date: daysAgo(0) }]
