@@ -74,7 +74,8 @@ server.registerTool(
       urgency: urgency.optional(),
       date: dateArg.optional(),
       noteId: z.string().optional().describe('Pusty string odpina notatkę'),
-      url: z.string().optional().describe('Link http(s); pusty string odpina')
+      url: z.string().optional().describe('Link http(s); pusty string odpina'),
+      color: z.string().optional().describe('Kolor tożsamości (hex); pusty przywraca automatyczny')
     }
   },
   async ({ id, ...patch }) => {

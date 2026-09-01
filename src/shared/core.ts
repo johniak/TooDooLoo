@@ -12,6 +12,7 @@ export type Todo = {
   noteId?: string
   url?: string // link http(s) podpięty do todosa
   rolledFrom?: string // YYYY-MM-DD — pierwotny dzień, z którego todos się przeturlał
+  color?: string // ręcznie wybrany kolor tożsamości; brak = automat z hasha id
   sessions?: Session[] // sesje trackingu czasu; max jedna otwarta w całym systemie
   createdAt: string
 }
@@ -98,6 +99,7 @@ export type TimelineBlock = {
   todoId: string
   sessionIdx: number // indeks sesji w todo.sessions
   text: string
+  color: string // kolor tożsamości todosa (ręczny lub z hasha)
   date: string // YYYY-MM-DD — kolumna dnia
   startMin: number // minuty od północy
   endMin: number
@@ -147,6 +149,7 @@ export function weekBlocks(todos: Todo[], dates: string[], now: number = Date.no
           todoId: t.id,
           sessionIdx,
           text: t.text,
+          color: taskColor(t),
           date,
           startMin: (from - dayStart) / 60_000,
           endMin: (to - dayStart) / 60_000,
@@ -178,12 +181,23 @@ export function fmtDur(sec: number): string {
   return m >= 60 ? `${Math.floor(m / 60)}h ${m % 60}m` : `${m}m`
 }
 
-// kolor tożsamości zadania: stały hash z id na przygaszoną paletę pasującą do atramentu
-const TASK_COLORS = ['#C96F4A', '#B08B4F', '#8FA05C', '#5F9E83', '#5C8FA8', '#7B7FB5', '#A06E9E', '#A8656B']
+// kolor tożsamości zadania: żywe pastele czytelne na atramencie;
+// bez brązów i pomarańczy — ta strefa należy do embera (akcent appki)
+export const TASK_COLORS = [
+  '#F27D9D', // malina
+  '#DE9BEE', // lilia
+  '#9D8CF2', // fiolet
+  '#7FA8F2', // błękit
+  '#72D4E8', // cyjan
+  '#7BE0B8', // mięta
+  '#A6E07F', // zieleń
+  '#EBDD7A' // słoma
+]
 
-export function taskColor(id: string): string {
+export function taskColor(t: Pick<Todo, 'id' | 'color'>): string {
+  if (t.color) return t.color
   let h = 0
-  for (const c of id) h = (h * 31 + c.charCodeAt(0)) % 997
+  for (const c of t.id) h = (h * 31 + c.charCodeAt(0)) % 997
   return TASK_COLORS[h % TASK_COLORS.length]
 }
 

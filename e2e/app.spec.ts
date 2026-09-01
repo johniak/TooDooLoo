@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test'
 import fs from 'fs'
 import path from 'path'
 import { launch, daysAgo } from './helpers'
-import { dayLabel } from '../src/shared/core'
+import { dayLabel, TASK_COLORS } from '../src/shared/core'
 
 // ostatni dzień roboczy przed dzisiaj — weekendy bez danych nie są widoczne w sidebarze
 const prevWorkday = (): string => {
@@ -244,6 +244,25 @@ test('oś czasu: przeciągnięcie bloku przesuwa sesję o godzinę (snap 5 min)'
       return todos[0].sessions[0]
     })
     .toMatchObject({ start: iso(11), end: iso(12) })
+  await app.close()
+})
+
+test('kolor zadania: ręczny wybór z palety i powrót do automatu', async () => {
+  const { app, page, dataDir } = await launch({
+    seedTodos: [{ text: 'Malowany', date: daysAgo(0) }]
+  })
+  const read = (): { color?: string }[] =>
+    JSON.parse(fs.readFileSync(path.join(dataDir, 'todos.json'), 'utf8'))
+  const todo = page.locator('.todo', { hasText: 'Malowany' })
+
+  await todo.locator('.todo-color').click()
+  await page.locator('.color-swatch').first().click()
+  await expect.poll(() => read()[0].color).toBe(TASK_COLORS[0])
+
+  // powrót do koloru automatycznego
+  await todo.locator('.todo-color').click()
+  await page.getByRole('button', { name: '↺ Automatyczny' }).click()
+  await expect.poll(() => read()[0].color).toBeUndefined()
   await app.close()
 })
 

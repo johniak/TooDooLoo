@@ -940,6 +940,40 @@ textarea {
     0 0 24px rgba(255, 120, 71, 0.12);
 }
 
+/* wybór koloru tożsamości */
+.color-dot {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border-radius: 4px;
+}
+
+.picker-colors {
+  width: max-content;
+}
+
+.picker-swatches {
+  display: flex;
+  gap: 6px;
+  padding: 4px;
+}
+
+.color-swatch {
+  width: 22px;
+  height: 22px;
+  border-radius: 7px;
+  transition: transform 0.12s;
+}
+
+.color-swatch:hover {
+  transform: scale(1.15);
+}
+
+.color-swatch[aria-checked='true'] {
+  outline: 2px solid var(--text);
+  outline-offset: 1px;
+}
+
 /* duch todosa, który przeszedł przez ten dzień rolloverem */
 .todo-ghost {
   opacity: 0.55;

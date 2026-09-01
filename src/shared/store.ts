@@ -74,6 +74,7 @@ export function updateTodo(id: string, patch: Partial<Todo>): Todo | null {
   if (todo.done) closeOpenSession(todo, new Date().toISOString()) // zrobione = timer staje
   if (!todo.url) delete todo.url
   if (!todo.noteId) delete todo.noteId
+  if (!todo.color) delete todo.color
   saveTodos(todos)
   return todo
 }

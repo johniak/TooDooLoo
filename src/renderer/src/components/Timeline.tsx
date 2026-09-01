@@ -101,7 +101,7 @@ function SessionModal({
   return (
     <div className="tl-backdrop" onClick={onClose}>
       <div className="tl-modal card" onClick={(e) => e.stopPropagation()}>
-        <h3 className="tl-modal-title" style={{ color: taskColor(todo.id) }}>
+        <h3 className="tl-modal-title" style={{ color: taskColor(todo) }}>
           {todo.text}
         </h3>
         <label className="tl-field">
@@ -288,7 +288,7 @@ export default function Timeline({ workStart, workEnd, onOpenTodo }: Props): Rea
                   <div className="tl-now" style={{ top: toPx(nowMin) }} />
                 )}
                 {byDate(date).map((b, i) => {
-                  const color = taskColor(b.todoId)
+                  const color = b.color
                   const h = toPx(b.endMin) - toPx(b.startMin)
                   return (
                     <button

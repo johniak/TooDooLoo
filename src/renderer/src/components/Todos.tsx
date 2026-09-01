@@ -9,7 +9,8 @@ import {
   trackingSince,
   trackedSeconds,
   fmtClock,
-  taskColor
+  taskColor,
+  TASK_COLORS
 } from '../../../shared/core'
 
 const hostname = (u: string): string => {
@@ -66,7 +67,10 @@ export default function Todos({
   const [url, setUrl] = useState('')
   const [urgency, setUrgency] = useState<Urgency>('medium')
   const [burstId, setBurstId] = useState<string | null>(null)
-  const [pickerFor, setPickerFor] = useState<{ id: string; kind: 'link' | 'urgency' } | null>(null)
+  const [pickerFor, setPickerFor] = useState<{
+    id: string
+    kind: 'link' | 'urgency' | 'color'
+  } | null>(null)
   const [, setClockTick] = useState(0)
 
   // żywe sekundy na chipie czasu, tylko gdy jakiś timer chodzi
@@ -145,7 +149,7 @@ export default function Todos({
             const pickerOpen = pickerFor?.id === t.id
             const running = !!trackingSince(t)
             const secs = trackedSeconds(t)
-            const edge = { borderLeftColor: taskColor(t.id) }
+            const edge = { borderLeftColor: taskColor(t) }
             // duch: todos przeszedł przez ten dzień rolloverem — pokazujemy ślad, edycja na dniu docelowym
             if (t.date !== date) {
               return (
@@ -223,6 +227,15 @@ export default function Todos({
                 >
                   <span className="ember-dot ember-glow" style={{ background: u.color }} />
                 </button>
+                <button
+                  className="todo-icon todo-color"
+                  title="Kolor zadania"
+                  onClick={() =>
+                    setPickerFor(pickerOpen && pickerFor.kind === 'color' ? null : { id: t.id, kind: 'color' })
+                  }
+                >
+                  <span className="color-dot" style={{ background: taskColor(t) }} />
+                </button>
                 {!t.done && (
                   <button
                     className={`todo-icon todo-track ${running ? 'todo-track-on' : ''}`}
@@ -274,6 +287,38 @@ export default function Todos({
                         {opt.label}
                       </button>
                     ))}
+                  </div>
+                )}
+                {pickerOpen && pickerFor.kind === 'color' && (
+                  <div className="picker picker-colors" role="radiogroup" aria-label="Kolor zadania">
+                    <div className="picker-swatches">
+                      {TASK_COLORS.map((c) => (
+                        <button
+                          key={c}
+                          role="radio"
+                          aria-checked={taskColor(t) === c}
+                          className="color-swatch"
+                          style={{ background: c }}
+                          onClick={async () => {
+                            await window.api.updateTodo(t.id, { color: c })
+                            setPickerFor(null)
+                            onChange()
+                          }}
+                        />
+                      ))}
+                    </div>
+                    {t.color && (
+                      <button
+                        className="picker-option"
+                        onClick={async () => {
+                          await window.api.updateTodo(t.id, { color: '' })
+                          setPickerFor(null)
+                          onChange()
+                        }}
+                      >
+                        ↺ Automatyczny
+                      </button>
+                    )}
                   </div>
                 )}
                 {pickerOpen && pickerFor.kind === 'link' && (
