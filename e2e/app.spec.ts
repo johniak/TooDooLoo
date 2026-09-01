@@ -407,9 +407,11 @@ test('notatki: tworzenie, edycja md, tryb wizualny, podstrona', async () => {
   await expect(page.locator('.note-chip', { hasText: 'Szczegóły' })).toBeVisible()
 
   await page.getByRole('button', { name: '← Wróć' }).click()
-  await expect(page.locator('.note-card', { hasText: 'Plan sprintu' })).toBeVisible()
-  // podstrona nie jest listowana jako top-level
-  await expect(page.locator('.note-card', { hasText: 'Szczegóły' })).toHaveCount(0)
+  // drzewo: rodzic z rozwiniętą podstroną, zwijanie chowa dziecko
+  await expect(page.locator('.tree-title', { hasText: 'Plan sprintu' })).toBeVisible()
+  await expect(page.locator('.tree-title', { hasText: 'Szczegóły' })).toBeVisible()
+  await page.locator('.tree-row', { hasText: 'Plan sprintu' }).locator('.tree-toggle').click()
+  await expect(page.locator('.tree-title', { hasText: 'Szczegóły' })).toHaveCount(0)
   await app.close()
 })
 
@@ -483,12 +485,15 @@ test('notatka dnia: inline pod todosami, zapis do day-<data>.md, poza eksplorato
     })
     .toContain('Log dnia: spokój')
 
-  // notatka dnia nie zaśmieca eksploratora
+  // notatka dnia siedzi w katalogu „Notatki dni" (domyślnie zwiniętym), nie między zwykłymi
   await page.locator('.notes-link').click()
-  await expect(page.locator('.note-card')).toHaveCount(0)
+  await expect(page.locator('.tree-row-day')).toHaveCount(0)
+  await expect(page.locator('.tree-folder')).toBeVisible()
+  await page.locator('.tree-folder .tree-title').click()
+  await expect(page.locator('.tree-row-day')).toHaveCount(1)
 
-  // po powrocie na dzień treść jest wczytana
-  await page.locator('.day', { hasText: 'Dzisiaj' }).click()
+  // klik w dzień z katalogu otwiera widok dnia z wczytaną treścią
+  await page.locator('.tree-row-day .tree-title').click()
   await expect(page.locator('.day-note .tiptap')).toContainText('Log dnia: spokój')
   await app.close()
 })

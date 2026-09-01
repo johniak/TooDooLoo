@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion } from 'framer-motion'
 import { useEditor, useEditorState, EditorContent, Editor as TiptapEditor } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
 import { Markdown } from '@tiptap/markdown'
@@ -9,8 +9,10 @@ import { refLinks, RefBases } from '../reflinks'
 
 type Props = {
   notes: NoteMeta[]
+  dayNotes?: NoteMeta[] // notatki dni (day-*) — w eksploratorze jako wirtualny katalog
   openNoteId: string | null
   onOpen: (id: string | null) => void
+  onOpenDay?: (date: string) => void
   onChange: () => void
 }
 
@@ -353,7 +355,77 @@ function Editor({
   )
 }
 
-export default function Notes({ notes, openNoteId, onOpen, onChange }: Props): React.JSX.Element {
+function TreeRows({
+  notes,
+  parentId,
+  depth,
+  collapsed,
+  toggle,
+  onOpen
+}: {
+  notes: NoteMeta[]
+  parentId: string | undefined
+  depth: number
+  collapsed: Set<string>
+  toggle: (id: string) => void
+  onOpen: (id: string) => void
+}): React.JSX.Element {
+  const level = notes.filter((n) => n.parentId === parentId)
+  return (
+    <>
+      {level.map((n) => {
+        const kids = notes.some((k) => k.parentId === n.id)
+        const closed = collapsed.has(n.id)
+        return (
+          <div key={n.id}>
+            <div className="tree-row" style={{ paddingLeft: depth * 20 }}>
+              <button
+                className={`tree-toggle ${kids ? '' : 'tree-toggle-empty'}`}
+                aria-label={closed ? 'Rozwiń' : 'Zwiń'}
+                onClick={() => kids && toggle(n.id)}
+              >
+                {kids ? (closed ? '▸' : '▾') : '·'}
+              </button>
+              <button className="tree-title" onClick={() => onOpen(n.id)}>
+                ▤ {n.title}
+              </button>
+              <span className="tree-date">{dayLabel(n.date)}</span>
+            </div>
+            {kids && !closed && (
+              <TreeRows
+                notes={notes}
+                parentId={n.id}
+                depth={depth + 1}
+                collapsed={collapsed}
+                toggle={toggle}
+                onOpen={onOpen}
+              />
+            )}
+          </div>
+        )
+      })}
+    </>
+  )
+}
+
+export default function Notes({
+  notes,
+  dayNotes = [],
+  openNoteId,
+  onOpen,
+  onOpenDay,
+  onChange
+}: Props): React.JSX.Element {
+  // zwinięte węzły; katalog dni domyślnie zwinięty
+  const [collapsed, setCollapsed] = useState<Set<string>>(() => new Set(['day-folder']))
+  const toggle = (id: string): void =>
+    setCollapsed((c) => {
+      const next = new Set(c)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+
   if (openNoteId) {
     return (
       <section className="notes" aria-label="Notatki">
@@ -362,7 +434,8 @@ export default function Notes({ notes, openNoteId, onOpen, onChange }: Props): R
     )
   }
 
-  const visible = notes.filter((n) => !n.parentId)
+  const daysClosed = collapsed.has('day-folder')
+  const sortedDays = [...dayNotes].sort((a, b) => b.date.localeCompare(a.date))
 
   return (
     <section className="notes" aria-label="Notatki">
@@ -379,26 +452,47 @@ export default function Notes({ notes, openNoteId, onOpen, onChange }: Props): R
           ＋ Notatka
         </button>
       </div>
-      <div className="note-grid">
-        <AnimatePresence initial={false}>
-          {visible.map((n) => (
-            <motion.button
-              key={n.id}
-              layout
-              initial={{ opacity: 0, scale: 0.92 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.92 }}
-              whileHover={{ y: -3 }}
-              className="note-card card"
-              onClick={() => onOpen(n.id)}
-            >
-              <span className="note-card-title">{n.title}</span>
-              <span className="note-card-date">{dayLabel(n.date)}</span>
-            </motion.button>
-          ))}
-        </AnimatePresence>
+      <div className="note-tree">
+        <TreeRows
+          notes={notes}
+          parentId={undefined}
+          depth={0}
+          collapsed={collapsed}
+          toggle={toggle}
+          onOpen={onOpen}
+        />
+        {sortedDays.length > 0 && (
+          <>
+            <div className="tree-row tree-folder">
+              <button
+                className="tree-toggle"
+                aria-label={daysClosed ? 'Rozwiń' : 'Zwiń'}
+                onClick={() => toggle('day-folder')}
+              >
+                {daysClosed ? '▸' : '▾'}
+              </button>
+              <button className="tree-title" onClick={() => toggle('day-folder')}>
+                ▦ Notatki dni
+              </button>
+              <span className="tree-date">{sortedDays.length}</span>
+            </div>
+            {!daysClosed &&
+              sortedDays.map((n) => (
+                <div key={n.id} className="tree-row tree-row-day" style={{ paddingLeft: 20 }}>
+                  <span className="tree-toggle tree-toggle-empty">·</span>
+                  <button
+                    className="tree-title"
+                    title="Otwórz dzień"
+                    onClick={() => onOpenDay?.(n.date)}
+                  >
+                    {dayLabel(n.date)}
+                  </button>
+                </div>
+              ))}
+          </>
+        )}
       </div>
-      {visible.length === 0 && (
+      {notes.length === 0 && dayNotes.length === 0 && (
         <div className="empty empty-sm">
           <p>Żadnej notatki. „＋ Notatka" zaczyna nową kartkę.</p>
         </div>

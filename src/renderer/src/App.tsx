@@ -293,8 +293,14 @@ export default function App(): React.JSX.Element {
               ) : view === 'notes' ? (
                 <Notes
                   notes={realNotes}
+                  dayNotes={notes.filter((n) => n.id.startsWith('day-'))}
                   openNoteId={openNoteId}
                   onOpen={setOpenNoteId}
+                  onOpenDay={(date) => {
+                    setSelected(date)
+                    setView('day')
+                    setOpenNoteId(null)
+                  }}
                   onChange={reload}
                 />
               ) : view === 'timeline' || view === 'reports' ? (

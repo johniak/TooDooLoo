@@ -1429,34 +1429,75 @@ textarea {
   color: var(--text) !important;
 }
 
-.note-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  gap: var(--s2);
-}
-
-.note-card {
+/* drzewo notatek: podstrony wcięte, katalog notatek dni na końcu */
+.note-tree {
   display: flex;
   flex-direction: column;
-  gap: var(--s1);
-  padding: var(--card-pad);
-  text-align: left;
-  transition: border-color 0.15s, box-shadow 0.15s;
+  max-width: 640px;
 }
 
-.note-card:hover {
-  border-color: var(--faint);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+.tree-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  border-radius: 8px;
+  padding-right: var(--s1);
 }
 
-.note-card-title {
-  font-weight: 600;
+.tree-row:hover {
+  background: rgba(255, 255, 255, 0.03);
 }
 
-.note-card-date {
-  font-family: var(--display);
-  font-size: 12.5px;
+.tree-toggle {
+  width: 22px;
+  height: 30px;
+  flex-shrink: 0;
   color: var(--muted);
+  font-size: 11px;
+}
+
+.tree-toggle-empty {
+  color: var(--faint, var(--line));
+  cursor: default;
+  text-align: center;
+  line-height: 30px;
+}
+
+.tree-title {
+  flex: 1;
+  text-align: left;
+  padding: 6px 4px;
+  font-size: 14.5px;
+  font-weight: 500;
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tree-date {
+  font-family: var(--display);
+  font-size: 12px;
+  color: var(--muted);
+  flex-shrink: 0;
+}
+
+.tree-folder {
+  margin-top: var(--s3);
+  border-top: 1px solid var(--line);
+  padding-top: var(--s1);
+}
+
+.tree-folder .tree-title {
+  color: var(--dawn);
+}
+
+.tree-row-day .tree-title {
+  color: var(--muted);
+}
+
+.tree-row-day .tree-title:hover {
+  color: var(--text);
 }
 
 .note-editor {
