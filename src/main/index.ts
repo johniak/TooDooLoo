@@ -113,6 +113,9 @@ function registerIpc(): void {
   ipcMain.handle('session:update', (_e, todoId: string, idx: number, patch) =>
     storage.updateSession(todoId, idx, patch)
   )
+  ipcMain.handle('session:delete', (_e, todoId: string, idx: number) =>
+    storage.deleteSession(todoId, idx)
+  )
   ipcMain.handle('tracking:start', (_e, id: string) => {
     const todo = storage.startTracking(id)
     updateTray()

@@ -156,6 +156,19 @@ function SessionModal({
           <button className="tl-modal-link" onClick={() => onOpenTodo(todo.id, todo.date)}>
             ▤ Pokaż todosa
           </button>
+          {!running && (
+            <button
+              className="tl-modal-delete"
+              title="Usuń zalogowany czas"
+              onClick={async () => {
+                await window.api.deleteSession(todo.id, idx)
+                onSaved()
+                onClose()
+              }}
+            >
+              Usuń
+            </button>
+          )}
           <button onClick={onClose}>Anuluj</button>
           <button className="btn-primary" onClick={save} disabled={durMin <= 0}>
             Zapisz

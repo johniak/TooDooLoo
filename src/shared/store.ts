@@ -120,6 +120,18 @@ export function updateSession(
   return true
 }
 
+/** Usuwa zalogowaną sesję. Sesji w toku nie ruszamy — najpierw stop. */
+export function deleteSession(todoId: string, idx: number): boolean {
+  const todos = loadTodos()
+  const t = todos.find((x) => x.id === todoId)
+  const s = t?.sessions?.[idx]
+  if (!t || !s || !s.end) return false
+  t.sessions!.splice(idx, 1)
+  if (t.sessions!.length === 0) delete t.sessions
+  saveTodos(todos)
+  return true
+}
+
 /** „Tak, pracuję": wymazuje pauzę checkpointu — sesja biegnie dalej bez szwu. */
 export function resumeSession(id: string, checkpointIso: string): void {
   const todos = loadTodos()

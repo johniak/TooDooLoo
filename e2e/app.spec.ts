@@ -213,6 +213,17 @@ test('oś czasu: bloki sesji, cięcie przez północ, nakładki w slotach, klik 
       return todos.find((t: { text: string }) => t.text === 'Ranny A').sessions[0].start
     })
     .toBe(iso(daysAgo(0), 9, 30))
+  // usunięcie zalogowanego czasu z modala
+  await page.locator('.tl-block[title*="Ranny B"]').click()
+  await page.getByRole('button', { name: 'Usuń' }).click()
+  await expect(page.locator('.tl-block[title*="Ranny B"]')).toHaveCount(0)
+  await expect
+    .poll(() => {
+      const todos = JSON.parse(fs.readFileSync(path.join(dataDir, 'todos.json'), 'utf8'))
+      return todos.find((t: { text: string }) => t.text === 'Ranny B').sessions
+    })
+    .toBeUndefined()
+
   // link w modalu prowadzi do todosa
   await page.locator('.tl-block[title*="Ranny A"]').click()
   await page.getByRole('button', { name: '▤ Pokaż todosa' }).click()

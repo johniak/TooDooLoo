@@ -3,7 +3,15 @@ import fs from 'fs'
 import os from 'os'
 import path from 'path'
 import { weekBlocks, todayStr, Todo } from '../src/shared/core'
-import { addTodo, loadTodos, setDataDir, startTracking, stopTracking, updateSession } from '../src/shared/store'
+import {
+  addTodo,
+  deleteSession,
+  loadTodos,
+  setDataDir,
+  startTracking,
+  stopTracking,
+  updateSession
+} from '../src/shared/store'
 
 const D1 = '2026-01-05' // poniedziałek
 const D2 = '2026-01-06'
@@ -43,6 +51,16 @@ test('updateSession: chroni koniec otwartej sesji i kolejność start<koniec', (
   stopTracking()
   // start za końcem odrzucony
   expect(updateSession(t.id, 0, { start: new Date(Date.now() + 3600_000).toISOString() })).toBe(false)
+})
+
+test('deleteSession: usuwa zamkniętą sesję, sesji w toku nie rusza', () => {
+  setDataDir(fs.mkdtempSync(path.join(os.tmpdir(), 'toodooloo-del-')))
+  const t = addTodo({ text: 'x', date: todayStr(), urgency: 'medium' })
+  startTracking(t.id)
+  expect(deleteSession(t.id, 0)).toBe(false) // leci — nie ruszamy
+  stopTracking()
+  expect(deleteSession(t.id, 0)).toBe(true)
+  expect(loadTodos()[0].sessions).toBeUndefined()
 })
 
 test('weekBlocks: nakładki dostają sloty, rozłączne bloki pełną szerokość', () => {
