@@ -86,6 +86,8 @@ export function updateTodo(id: string, patch: Partial<Todo>): Todo | null {
   if (!todo) return null
   Object.assign(todo, patch, { id: todo.id })
   if (todo.done) closeOpenSession(todo, new Date().toISOString()) // zrobione = timer staje
+  // tytuł notatki ticketa podąża za tekstem todosa
+  if (patch.text && getNote(`todo-${todo.id}`)) saveNote(`todo-${todo.id}`, { title: todo.text })
   if (!todo.url) delete todo.url
   if (!todo.noteId) delete todo.noteId
   if (!todo.color) delete todo.color
@@ -270,6 +272,19 @@ export function saveNote(
 
 export function deleteNote(id: string): void {
   fs.rmSync(noteFile(id), { force: true })
+}
+
+/** Notatka ticketa: jedna na todosa, id todo-<todoId>, tworzona przy pierwszym zapisie. */
+export function saveTodoNote(todoId: string, body: string): void {
+  ensureDirs()
+  const todo = loadTodos().find((t) => t.id === todoId)
+  fs.writeFileSync(
+    noteFile(`todo-${todoId}`),
+    serializeNote(
+      { id: `todo-${todoId}`, title: todo?.text ?? 'Ticket', date: todo?.date ?? todayStr() },
+      body
+    )
+  )
 }
 
 /** Notatka dnia: jedna na dzień, id deterministyczne, tworzona przy pierwszym zapisie. */

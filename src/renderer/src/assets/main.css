@@ -1259,6 +1259,26 @@ textarea {
   flex-shrink: 0;
 }
 
+/* notatka ticketa: rozwijana pod wierszem todosa */
+.todo-expanded {
+  flex-wrap: wrap;
+}
+
+.todo-note-inline {
+  flex-basis: 100%;
+  margin-top: var(--s2);
+  border-top: 1px solid var(--line);
+  padding-top: var(--s2);
+}
+
+.todo-note-inline .tiptap {
+  min-height: 80px;
+}
+
+.todo-note-btn-has {
+  color: var(--dawn);
+}
+
 /* wybór koloru tożsamości */
 .color-dot {
   display: inline-block;

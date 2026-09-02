@@ -39,6 +39,8 @@ export const api = {
   ): Promise<void> => ipcRenderer.invoke('notes:save', id, patch),
   saveDayNote: (date: string, body: string): Promise<void> =>
     ipcRenderer.invoke('notes:saveDay', date, body),
+  saveTodoNote: (todoId: string, body: string): Promise<void> =>
+    ipcRenderer.invoke('notes:saveTodo', todoId, body),
   deleteNote: (id: string): Promise<void> => ipcRenderer.invoke('notes:delete', id)
 }
 

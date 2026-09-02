@@ -134,7 +134,7 @@ function registerIpc(): void {
       if (t.done) day(t.date).done++
     }
     for (const n of storage.listNotes()) {
-      if (!n.id.startsWith('day-')) day(n.date).notes++
+      if (!n.id.startsWith('day-') && !n.id.startsWith('todo-')) day(n.date).notes++
     }
     return summary
   })
@@ -148,6 +148,9 @@ function registerIpc(): void {
   ipcMain.handle('notes:create', (_e, input) => storage.createNote(input))
   ipcMain.handle('notes:save', (_e, id: string, patch) => storage.saveNote(id, patch))
   ipcMain.handle('notes:saveDay', (_e, date: string, body: string) => storage.saveDayNote(date, body))
+  ipcMain.handle('notes:saveTodo', (_e, todoId: string, body: string) =>
+    storage.saveTodoNote(todoId, body)
+  )
   ipcMain.handle('notes:delete', (_e, id: string) => storage.deleteNote(id))
 }
 

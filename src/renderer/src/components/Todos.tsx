@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
+import TodoNote from './TodoNote'
 import {
   Todo,
   NoteMeta,
@@ -50,6 +51,7 @@ type Props = {
   date: string
   todos: Todo[]
   notes: NoteMeta[]
+  ticketNotes?: NoteMeta[] // notatki todo-* — do podświetlenia ✎, gdy ticket ma już treść
   onChange: () => void
   onOpenNote?: (id: string) => void
   highlightId?: string | null
@@ -59,6 +61,7 @@ export default function Todos({
   date,
   todos,
   notes,
+  ticketNotes = [],
   onChange,
   onOpenNote,
   highlightId
@@ -71,6 +74,7 @@ export default function Todos({
     id: string
     kind: 'link' | 'urgency' | 'color'
   } | null>(null)
+  const [noteFor, setNoteFor] = useState<string | null>(null) // rozwinięta notatka ticketa
   const [, setClockTick] = useState(0)
 
   // żywe sekundy na chipie czasu, tylko gdy jakiś timer chodzi
@@ -182,7 +186,7 @@ export default function Todos({
                 exit={{ opacity: 0, x: 60, scale: 0.9 }}
                 transition={{ type: 'spring', stiffness: 500, damping: 34 }}
                 style={pickerOpen ? { ...edge, zIndex: 5 } : edge}
-                className={`todo card ${t.done ? 'todo-done' : ''} ${running ? 'todo-tracking' : ''} ${highlightId === t.id ? 'todo-flash' : ''}`}
+                className={`todo card ${t.done ? 'todo-done' : ''} ${running ? 'todo-tracking' : ''} ${highlightId === t.id ? 'todo-flash' : ''} ${noteFor === t.id ? 'todo-expanded' : ''}`}
               >
                 <button
                   className="todo-check"
@@ -228,6 +232,13 @@ export default function Todos({
                   }
                 >
                   <span className="ember-dot ember-glow" style={{ background: u.color }} />
+                </button>
+                <button
+                  className={`todo-icon todo-note-btn ${ticketNotes.some((n) => n.id === `todo-${t.id}`) ? 'todo-note-btn-has' : ''}`}
+                  title="Notatka ticketa"
+                  onClick={() => setNoteFor(noteFor === t.id ? null : t.id)}
+                >
+                  ✎
                 </button>
                 <button
                   className="todo-icon todo-color"
@@ -289,6 +300,11 @@ export default function Todos({
                         {opt.label}
                       </button>
                     ))}
+                  </div>
+                )}
+                {noteFor === t.id && (
+                  <div className="todo-note-inline">
+                    <TodoNote todoId={t.id} />
                   </div>
                 )}
                 {pickerOpen && pickerFor.kind === 'color' && (

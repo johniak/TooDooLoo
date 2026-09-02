@@ -155,7 +155,10 @@ export default function App(): React.JSX.Element {
       const title = detail.title.trim()
       const all = await window.api.listNotes()
       let note = all.find(
-        (n) => !n.id.startsWith('day-') && n.title.trim().toLowerCase() === title.toLowerCase()
+        (n) =>
+          !n.id.startsWith('day-') &&
+          !n.id.startsWith('todo-') &&
+          n.title.trim().toLowerCase() === title.toLowerCase()
       )
       note ??= await window.api.createNote({ title, date: todayStr(), parentId: detail.parentId })
       setView('notes')
@@ -187,8 +190,8 @@ export default function App(): React.JSX.Element {
   }, [reload])
 
   const today = todayStr()
-  // notatki dnia (day-*) żyją inline w widoku dnia, nie w eksploratorze
-  const realNotes = notes.filter((n) => !n.id.startsWith('day-'))
+  // notatki dnia (day-*) i ticketów (todo-*) żyją inline; w eksploratorze mają własne katalogi
+  const realNotes = notes.filter((n) => !n.id.startsWith('day-') && !n.id.startsWith('todo-'))
 
   return (
     <MotionConfig reducedMotion="user">
@@ -282,6 +285,7 @@ export default function App(): React.JSX.Element {
                     date={selected}
                     todos={todos}
                     notes={realNotes}
+                    ticketNotes={notes.filter((n) => n.id.startsWith('todo-'))}
                     onChange={reload}
                     onOpenNote={(id) => {
                       setOpenNoteId(id)
@@ -295,6 +299,7 @@ export default function App(): React.JSX.Element {
                 <Notes
                   notes={realNotes}
                   dayNotes={notes.filter((n) => n.id.startsWith('day-'))}
+                  ticketNotes={notes.filter((n) => n.id.startsWith('todo-'))}
                   openNoteId={openNoteId}
                   onOpen={setOpenNoteId}
                   onOpenDay={(date) => {

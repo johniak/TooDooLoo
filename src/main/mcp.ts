@@ -186,6 +186,29 @@ server.registerTool(
   }
 )
 
+// --- notatka ticketa ---
+
+server.registerTool(
+  'get_todo_note',
+  {
+    description: 'Pobiera notatkę podpiętą pod todosa (id notatki: todo-<todoId>).',
+    inputSchema: { todoId: z.string() }
+  },
+  async ({ todoId }) => json({ todoId, body: store.getNote(`todo-${todoId}`)?.body ?? '' })
+)
+
+server.registerTool(
+  'set_todo_note',
+  {
+    description: 'Ustawia treść (markdown) notatki todosa. Nadpisuje całość; tworzy przy pierwszym zapisie.',
+    inputSchema: { todoId: z.string(), body: z.string() }
+  },
+  async ({ todoId, body }) => {
+    store.saveTodoNote(todoId, body)
+    return json({ todoId, saved: true })
+  }
+)
+
 // --- notatka dnia ---
 
 server.registerTool(

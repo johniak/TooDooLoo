@@ -388,6 +388,37 @@ test('odnośniki [[...]] między notatkami: klik tworzy i otwiera, picker linkuj
   await app.close()
 })
 
+test('notatka ticketa: inline pod todosem, widoczna w katalogu Notatki ticketów', async () => {
+  const { app, page, dataDir } = await launch({
+    seedTodos: [{ text: 'Ticketowy', date: daysAgo(0) }]
+  })
+  const todo = page.locator('.todo', { hasText: 'Ticketowy' })
+  await todo.locator('.todo-note-btn').click()
+  await page.locator('.todo-note-inline .tiptap').click()
+  await page.keyboard.type('Szybka myśl o tickecie')
+  await expect
+    .poll(() => {
+      try {
+        return fs.readFileSync(path.join(dataDir, 'notes', 'todo-seed-0.md'), 'utf8')
+      } catch {
+        return ''
+      }
+    })
+    .toContain('Szybka myśl o tickecie')
+  expect(fs.readFileSync(path.join(dataDir, 'notes', 'todo-seed-0.md'), 'utf8')).toContain(
+    'title: Ticketowy'
+  )
+  // ✎ podświetlone, bo notatka istnieje
+  await expect(todo.locator('.todo-note-btn')).toHaveClass(/todo-note-btn-has/)
+
+  // eksplorator: katalog Notatki ticketów, wpis otwiera edytor
+  await page.locator('.notes-link').click()
+  await page.locator('.tree-folder-tickets .tree-title').click()
+  await page.locator('.tree-row-ticket .tree-title', { hasText: 'Ticketowy' }).click()
+  await expect(page.locator('.note-title')).toHaveValue('Ticketowy')
+  await app.close()
+})
+
 test('drzewo: [[ tworzy podstronę bieżącej notatki, drag & drop przenosi', async () => {
   const { app, page, dataDir } = await launch()
   await page.locator('.notes-link').click()

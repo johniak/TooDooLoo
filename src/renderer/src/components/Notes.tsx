@@ -10,6 +10,7 @@ import { refLinks, RefBases } from '../reflinks'
 type Props = {
   notes: NoteMeta[]
   dayNotes?: NoteMeta[] // notatki dni (day-*) — w eksploratorze jako wirtualny katalog
+  ticketNotes?: NoteMeta[] // notatki ticketów (todo-*) — drugi wirtualny katalog
   openNoteId: string | null
   onOpen: (id: string | null) => void
   onOpenDay?: (date: string) => void
@@ -162,7 +163,11 @@ export function VisualEditor({
                 setNotePicker(false)
                 return
               }
-              setAllNotes((await window.api.listNotes()).filter((n) => !n.id.startsWith('day-')))
+              setAllNotes(
+                (await window.api.listNotes()).filter(
+                  (n) => !n.id.startsWith('day-') && !n.id.startsWith('todo-')
+                )
+              )
               setNoteQuery('')
               setNotePicker(true)
             }}
@@ -441,13 +446,16 @@ function TreeRows({
 export default function Notes({
   notes,
   dayNotes = [],
+  ticketNotes = [],
   openNoteId,
   onOpen,
   onOpenDay,
   onChange
 }: Props): React.JSX.Element {
-  // zwinięte węzły; katalog dni domyślnie zwinięty
-  const [collapsed, setCollapsed] = useState<Set<string>>(() => new Set(['day-folder']))
+  // zwinięte węzły; katalogi dni i ticketów domyślnie zwinięte
+  const [collapsed, setCollapsed] = useState<Set<string>>(
+    () => new Set(['day-folder', 'ticket-folder'])
+  )
   // drag & drop: wpinanie notatki pod inną (cykle odrzuca store)
   const [dropId, setDropId] = useState<string | null>(null)
   const move = async (dragId: string, targetId: string): Promise<void> => {
@@ -512,6 +520,35 @@ export default function Notes({
           onOpen={onOpen}
           dnd={dnd}
         />
+        {ticketNotes.length > 0 && (
+          <>
+            <div className="tree-row tree-folder tree-folder-tickets">
+              <button
+                className="tree-toggle"
+                aria-label={collapsed.has('ticket-folder') ? 'Rozwiń' : 'Zwiń'}
+                onClick={() => toggle('ticket-folder')}
+              >
+                {collapsed.has('ticket-folder') ? '▸' : '▾'}
+              </button>
+              <button className="tree-title" onClick={() => toggle('ticket-folder')}>
+                ⌗ Notatki ticketów
+              </button>
+              <span className="tree-date">{ticketNotes.length}</span>
+            </div>
+            {!collapsed.has('ticket-folder') &&
+              [...ticketNotes]
+                .sort((a, b) => b.date.localeCompare(a.date))
+                .map((n) => (
+                  <div key={n.id} className="tree-row tree-row-ticket" style={{ paddingLeft: 20 }}>
+                    <span className="tree-toggle tree-toggle-empty">·</span>
+                    <button className="tree-title" onClick={() => onOpen(n.id)}>
+                      ▤ {n.title}
+                    </button>
+                    <span className="tree-date">{dayLabel(n.date)}</span>
+                  </div>
+                ))}
+          </>
+        )}
         {sortedDays.length > 0 && (
           <>
             <div className="tree-row tree-folder">
@@ -543,7 +580,7 @@ export default function Notes({
           </>
         )}
       </div>
-      {notes.length === 0 && dayNotes.length === 0 && (
+      {notes.length === 0 && dayNotes.length === 0 && ticketNotes.length === 0 && (
         <div className="empty empty-sm">
           <p>Żadnej notatki. „＋ Notatka" zaczyna nową kartkę.</p>
         </div>
