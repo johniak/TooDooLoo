@@ -38,7 +38,7 @@ function decorate(doc: Node): DecorationSet {
   return DecorationSet.create(doc, decos)
 }
 
-export function refLinks(bases: RefBases): Extension {
+export function refLinks(bases: RefBases, parentId?: string): Extension {
   return Extension.create({
     name: 'refLinks',
     addProseMirrorPlugins() {
@@ -54,8 +54,10 @@ export function refLinks(bases: RefBases): Extension {
                 // App nasłuchuje i przełącza na dzień todosa — bez wiercenia propsów przez edytory
                 window.dispatchEvent(new CustomEvent('open-todo-num', { detail: Number(val) }))
               } else if (el.dataset.ref === 'note') {
-                // otwiera notatkę po tytule; nieistniejącą App tworzy (wiki-styl)
-                window.dispatchEvent(new CustomEvent('open-note-title', { detail: val }))
+                // otwiera notatkę po tytule; nieistniejącą App tworzy jako podstronę bieżącej
+                window.dispatchEvent(
+                  new CustomEvent('open-note-title', { detail: { title: val, parentId } })
+                )
               } else if (el.dataset.ref === 'ab' && bases.azureBase) {
                 window.open(joinUrl(bases.azureBase, val))
               } else if (el.dataset.ref === 'gh' && bases.githubBase) {

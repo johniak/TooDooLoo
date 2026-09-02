@@ -149,14 +149,15 @@ export default function App(): React.JSX.Element {
       if (t) flash(t.id, t.date)
     }
     window.addEventListener('open-todo-num', byNum)
-    // [[Tytuł]] kliknięty w notatce — otwiera notatkę po tytule, nieistniejącą tworzy (wiki-styl)
+    // [[Tytuł]] kliknięty w notatce — otwiera po tytule; nieistniejąca powstaje jako podstrona gospodarza
     const byTitle = async (e: Event): Promise<void> => {
-      const title = String((e as CustomEvent).detail).trim()
+      const detail = (e as CustomEvent).detail as { title: string; parentId?: string }
+      const title = detail.title.trim()
       const all = await window.api.listNotes()
       let note = all.find(
         (n) => !n.id.startsWith('day-') && n.title.trim().toLowerCase() === title.toLowerCase()
       )
-      note ??= await window.api.createNote({ title, date: todayStr() })
+      note ??= await window.api.createNote({ title, date: todayStr(), parentId: detail.parentId })
       setView('notes')
       setOpenNoteId(note.id)
     }

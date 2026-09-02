@@ -1482,6 +1482,16 @@ textarea {
   flex-shrink: 0;
 }
 
+.tree-row[draggable] {
+  cursor: grab;
+}
+
+.tree-drop {
+  background: rgba(255, 120, 71, 0.1);
+  box-shadow: inset 0 0 0 1px var(--ember);
+  border-radius: 8px;
+}
+
 .tree-folder {
   margin-top: var(--s3);
   border-top: 1px solid var(--line);

@@ -240,10 +240,30 @@ export function createNote(input: Pick<NoteMeta, 'title' | 'date'> & { parentId?
   return meta
 }
 
-export function saveNote(id: string, patch: { title?: string; body?: string }): void {
+/** Czy `candidate` leży w poddrzewie notatki `ancestorId` (włącznie z nią samą). */
+function inSubtree(candidate: string, ancestorId: string): boolean {
+  let cur: string | undefined = candidate
+  for (let i = 0; cur && i < 100; i++) {
+    if (cur === ancestorId) return true
+    cur = getNote(cur)?.meta.parentId
+  }
+  return false
+}
+
+export function saveNote(
+  id: string,
+  patch: { title?: string; body?: string; parentId?: string }
+): void {
   const note = getNote(id)
   if (!note) return
   if (patch.title !== undefined) note.meta.title = patch.title
+  if (patch.parentId !== undefined) {
+    if (!patch.parentId) {
+      delete note.meta.parentId // '' odpina — notatka wraca na top-level
+    } else if (!inSubtree(patch.parentId, id)) {
+      note.meta.parentId = patch.parentId // guard: nie wpinamy pod własne poddrzewo
+    }
+  }
   const body = patch.body !== undefined ? patch.body : note.body
   fs.writeFileSync(noteFile(id), serializeNote(note.meta, body))
 }

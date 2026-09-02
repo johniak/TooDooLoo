@@ -388,6 +388,48 @@ test('odnośniki [[...]] między notatkami: klik tworzy i otwiera, picker linkuj
   await app.close()
 })
 
+test('drzewo: [[ tworzy podstronę bieżącej notatki, drag & drop przenosi', async () => {
+  const { app, page, dataDir } = await launch()
+  await page.locator('.notes-link').click()
+  await page.getByRole('button', { name: '＋ Notatka' }).click()
+  await page.locator('.note-title').fill('Alfa')
+  await page.getByRole('button', { name: '← Wróć' }).click()
+  await page.getByRole('button', { name: '＋ Notatka' }).click()
+  await page.locator('.note-title').fill('Beta')
+
+  // [[Gamma]] wpisana w Becie → klik tworzy ją jako podstronę Bety
+  await page.getByRole('radio', { name: 'Wizualnie' }).click()
+  await page.locator('.note-visual .tiptap').click()
+  await page.keyboard.type('Patrz [[Gamma]]')
+  await page.locator('.ref-note').click()
+  await expect(page.locator('.note-title')).toHaveValue('Gamma')
+
+  const byTitle = (t: string): { id: string; raw: string } | undefined =>
+    fs
+      .readdirSync(path.join(dataDir, 'notes'))
+      .filter((f) => f.endsWith('.md'))
+      .map((f) => ({
+        id: f.slice(0, -3),
+        raw: fs.readFileSync(path.join(dataDir, 'notes', f), 'utf8')
+      }))
+      .find((n) => n.raw.includes(`title: ${t}`))
+  await expect.poll(() => byTitle('Gamma')?.raw ?? '').toContain(`parentId: ${byTitle('Beta')!.id}`)
+
+  // drag & drop: Alfa wpięta pod Betę
+  await page.getByRole('button', { name: '← Wróć' }).click() // Gamma → Beta
+  await page.getByRole('button', { name: '← Wróć' }).click() // Beta → drzewo
+  await page
+    .locator('.tree-row', { hasText: 'Alfa' })
+    .dragTo(page.locator('.tree-row', { hasText: 'Beta' }))
+  await expect.poll(() => byTitle('Alfa')?.raw ?? '').toContain(`parentId: ${byTitle('Beta')!.id}`)
+
+  // zwinięcie Bety chowa oba dzieci
+  await page.locator('.tree-row', { hasText: 'Beta' }).locator('.tree-toggle').click()
+  await expect(page.locator('.tree-title', { hasText: 'Alfa' })).toHaveCount(0)
+  await expect(page.locator('.tree-title', { hasText: 'Gamma' })).toHaveCount(0)
+  await app.close()
+})
+
 test('notatki: tworzenie, edycja md, tryb wizualny, podstrona', async () => {
   const { app, page } = await launch()
   await page.locator('.notes-link').click()

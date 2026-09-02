@@ -91,10 +91,12 @@ const FORMAT_BUTTONS: {
 export function VisualEditor({
   body,
   onSave,
+  noteId,
   placeholder = 'Pisz swobodnie — zapisuję jako markdown…'
 }: {
   body: string
   onSave: (md: string) => void
+  noteId?: string // notatka-gospodarz: nowe [[...]] stają się jej podstronami
   placeholder?: string
 }): React.JSX.Element {
   const [bases, setBases] = useState<RefBases | null>(null)
@@ -108,7 +110,7 @@ export function VisualEditor({
         StarterKit,
         Markdown,
         Placeholder.configure({ placeholder }),
-        refLinks(bases ?? { azureBase: '', githubBase: '' })
+        refLinks(bases ?? { azureBase: '', githubBase: '' }, noteId)
       ],
       content: body,
       contentType: 'markdown',
@@ -188,7 +190,11 @@ export function VisualEditor({
                 <button
                   className="picker-option"
                   onClick={async () => {
-                    await window.api.createNote({ title: noteQuery.trim(), date: todayStr() })
+                    await window.api.createNote({
+                      title: noteQuery.trim(),
+                      date: todayStr(),
+                      parentId: noteId
+                    })
                     insertNoteLink(noteQuery.trim())
                   }}
                 >
@@ -314,6 +320,7 @@ function Editor({
         <VisualEditor
           key={id}
           body={body}
+          noteId={id}
           onSave={(md) => {
             setBody(md)
             save({ body: md })
@@ -355,13 +362,20 @@ function Editor({
   )
 }
 
+type TreeDnd = {
+  dropId: string | null // '' = strefa top-level (nagłówek)
+  setDropId: (id: string | null) => void
+  move: (dragId: string, targetId: string) => void
+}
+
 function TreeRows({
   notes,
   parentId,
   depth,
   collapsed,
   toggle,
-  onOpen
+  onOpen,
+  dnd
 }: {
   notes: NoteMeta[]
   parentId: string | undefined
@@ -369,6 +383,7 @@ function TreeRows({
   collapsed: Set<string>
   toggle: (id: string) => void
   onOpen: (id: string) => void
+  dnd: TreeDnd
 }): React.JSX.Element {
   const level = notes.filter((n) => n.parentId === parentId)
   return (
@@ -378,7 +393,21 @@ function TreeRows({
         const closed = collapsed.has(n.id)
         return (
           <div key={n.id}>
-            <div className="tree-row" style={{ paddingLeft: depth * 20 }}>
+            <div
+              className={`tree-row ${dnd.dropId === n.id ? 'tree-drop' : ''}`}
+              style={{ paddingLeft: depth * 20 }}
+              draggable
+              onDragStart={(e) => e.dataTransfer.setData('text/note-id', n.id)}
+              onDragOver={(e) => {
+                e.preventDefault()
+                dnd.setDropId(n.id)
+              }}
+              onDragLeave={() => dnd.dropId === n.id && dnd.setDropId(null)}
+              onDrop={(e) => {
+                e.preventDefault()
+                dnd.move(e.dataTransfer.getData('text/note-id'), n.id)
+              }}
+            >
               <button
                 className={`tree-toggle ${kids ? '' : 'tree-toggle-empty'}`}
                 aria-label={closed ? 'Rozwiń' : 'Zwiń'}
@@ -399,6 +428,7 @@ function TreeRows({
                 collapsed={collapsed}
                 toggle={toggle}
                 onOpen={onOpen}
+                dnd={dnd}
               />
             )}
           </div>
@@ -418,6 +448,15 @@ export default function Notes({
 }: Props): React.JSX.Element {
   // zwinięte węzły; katalog dni domyślnie zwinięty
   const [collapsed, setCollapsed] = useState<Set<string>>(() => new Set(['day-folder']))
+  // drag & drop: wpinanie notatki pod inną (cykle odrzuca store)
+  const [dropId, setDropId] = useState<string | null>(null)
+  const move = async (dragId: string, targetId: string): Promise<void> => {
+    setDropId(null)
+    if (!dragId || dragId === targetId) return
+    await window.api.saveNote(dragId, { parentId: targetId })
+    onChange()
+  }
+  const dnd: TreeDnd = { dropId, setDropId, move }
   const toggle = (id: string): void =>
     setCollapsed((c) => {
       const next = new Set(c)
@@ -439,7 +478,18 @@ export default function Notes({
 
   return (
     <section className="notes" aria-label="Notatki">
-      <div className="notes-header">
+      <div
+        className={`notes-header ${dropId === '' ? 'tree-drop' : ''}`}
+        onDragOver={(e) => {
+          e.preventDefault()
+          setDropId('')
+        }}
+        onDragLeave={() => dropId === '' && setDropId(null)}
+        onDrop={(e) => {
+          e.preventDefault()
+          move(e.dataTransfer.getData('text/note-id'), '') // upuszczenie na nagłówek = top-level
+        }}
+      >
         <h3>Wszystkie notatki</h3>
         <button
           className="btn-primary"
@@ -460,6 +510,7 @@ export default function Notes({
           collapsed={collapsed}
           toggle={toggle}
           onOpen={onOpen}
+          dnd={dnd}
         />
         {sortedDays.length > 0 && (
           <>

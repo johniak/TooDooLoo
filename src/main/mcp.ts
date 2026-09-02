@@ -162,12 +162,17 @@ server.registerTool(
 server.registerTool(
   'update_note',
   {
-    description: 'Zmienia tytuł i/lub treść (markdown) notatki.',
-    inputSchema: { id: z.string(), title: z.string().optional(), body: z.string().optional() }
+    description: 'Zmienia tytuł, treść (markdown) i/lub rodzica notatki.',
+    inputSchema: {
+      id: z.string(),
+      title: z.string().optional(),
+      body: z.string().optional(),
+      parentId: z.string().optional().describe('Przenosi pod inną notatkę; pusty string odpina na top-level')
+    }
   },
-  async ({ id, title, body }) => {
+  async ({ id, title, body, parentId }) => {
     if (!store.getNote(id)) return fail(`Nie ma notatki o id ${id}`)
-    store.saveNote(id, { title, body })
+    store.saveNote(id, { title, body, parentId })
     return json(store.getNote(id))
   }
 )
